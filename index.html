@@ -36,9 +36,16 @@
 <iframe id="app" title="Kiểm tồn cửa hàng" allow="camera; clipboard-write" hidden></iframe>
 <script>
   // ===== DÁN LINK WEBAPP APPS SCRIPT (kết thúc bằng /exec) VÀO GIỮA HAI DẤU NHÁY =====
-  const APP_URL = 'https://script.google.com/macros/s/AKfycbw9VUNYiD5XAHs1d384y1un8CPYlfSx9teAY7z9rLGiQcKoGQweWq4-zEkhJTENdAsG/exec';
+  const APP_URL = 'DAN_LINK_WEBAPP_VAO_DAY';
   // ===================================================================================
   const man = document.getElementById('man'), tb = document.getElementById('tb'), fr = document.getElementById('app');
+  // Nhớ đăng nhập: vỏ app lưu phiên do webapp gửi ra, lần sau gửi kèm khi mở → vào thẳng, không phải đăng nhập lại
+  const doc = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  addEventListener('message', e => {
+    let host = ''; try { host = new URL(e.origin).hostname; } catch (x) { return; }
+    if (!/(^|\.)googleusercontent\.com$|^script\.google\.com$/.test(host) || !e.data || !('kt_tok' in e.data)) return; // chỉ nhận từ webapp Apps Script
+    try { e.data.kt_tok ? localStorage.setItem('kt_tok', e.data.kt_tok) : localStorage.removeItem('kt_tok'); } catch (x) {}
+  });
   function moApp() {
     if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(APP_URL)) {
       document.getElementById('xoay').hidden = true;
@@ -50,7 +57,8 @@
       tb.innerHTML = 'Không có mạng. App cần Internet để đọc/ghi Google Sheet.<br><br><button onclick="location.reload()">Thử lại</button>';
       return;
     }
-    fr.hidden = false; fr.src = APP_URL;
+    const t = doc('kt_tok');
+    fr.hidden = false; fr.src = APP_URL + (t ? (APP_URL.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(t) : '');
     fr.onload = () => { man.style.display = 'none'; };
     setTimeout(() => { if (man.style.display !== 'none') tb.textContent = 'Mạng chậm, vẫn đang mở…'; }, 8000);
   }
