@@ -1,69 +1,1401 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
-<meta charset="utf-8">
-<title>Kiểm tồn</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kiểm tồn cửa hàng</title>
 <meta name="theme-color" content="#13804a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kiểm tồn">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+  // ===== DÁN LINK WEBAPP APPS SCRIPT (kết thúc bằng /exec) VÀO GIỮA HAI DẤU NHÁY =====
+  window.API_URL = 'https://script.google.com/macros/s/AKfycbw9VUNYiD5XAHs1d384y1un8CPYlfSx9teAY7z9rLGiQcKoGQweWq4-zEkhJTENdAsG/exec';
+  // ===================================================================================
+</script>
+<meta charset="utf-8">
 <style>
-  html, body { margin:0; height:100%; background:#eaf6ee; font:15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#1d2b22; }
-  body { padding-top:env(safe-area-inset-top); box-sizing:border-box; }
-  #app { position:fixed; left:0; right:0; bottom:0; top:env(safe-area-inset-top); width:100%; height:calc(100% - env(safe-area-inset-top)); border:0; display:block; background:#eaf6ee; }
-  #man { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; background:#eaf6ee; z-index:2; }
-  #man img { width:96px; height:96px; border-radius:22px; }
-  #man b { color:#13804a; font-size:18px; }
-  #man .nho { font-size:13px; color:#5a6b60; max-width:320px; }
-  .xoay { width:28px; height:28px; border:3px solid #cfe5d6; border-top-color:#13804a; border-radius:50%; animation:x 0.9s linear infinite; }
-  @keyframes x { to { transform:rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .xoay { animation:none; } }
-  button { padding:10px 18px; border:0; border-radius:8px; background:#13804a; color:#fff; font-size:15px; font-weight:600; }
+  :root { --red:#13804a; --bg:#eaf6ee; --line:#cfe5d6; --ok:#1b7f3b; --warn:#b26a00; --head:#dff1e6; } /* tông xanh, nền xanh nhạt */
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:#222; }
+  header { background:var(--red); color:#fff; padding:8px 12px; font-weight:600; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:20; }
+  header #menuBtn { background:none; border:0; color:#fff; font-size:24px; line-height:1; padding:4px 8px; cursor:pointer; }
+  header #tieuDe { flex:1; font-size:16px; } header #userBox { font-size:12px; font-weight:400; opacity:.9; text-align:right; }
+  header { flex-wrap:wrap; row-gap:6px; }
+  /* thanh Ngày · Ca · NV dùng chung cả app */
+  #thanh { flex-basis:100%; display:grid; grid-template-columns:118px minmax(0,1.3fr) minmax(0,1fr); gap:6px; }
+  #thanh input, #thanh select { font-size:13px; padding:5px 6px; min-width:0; border:0; border-radius:6px; }
+  #thanh > * { width:100%; }
+  [hidden] { display:none !important; }
+  #thanh select:disabled { color:#222; opacity:1; background:#e6f4ea; }
+  th.cPos, td.cPos { background:#eef0ff; } td.cPos { font-weight:700; color:#3a47b5; }
+  /* Chốt tiền: mỗi cột một màu */
+  #tblTo .k1 { background:#e8f1ff; } #tblTo .k2 { background:#fff1e0; } #tblTo .k3 { background:#e9f7ec; font-weight:700; } #tblTo .k4 { background:#fdeef5; } /* mỗi nhóm 1 màu */
+  #tblTo th { position:static; } #tblTo th.k1, #tblTo th.k2, #tblTo th.k3, #tblTo th.k4 { filter:brightness(.95); } #tblTo td.tien { font-weight:700; }
+  #tblTo .mg { position:sticky; left:0; z-index:3; background:#fff; box-shadow:1px 0 0 var(--line); } #tblTo th.mg, #tblTo tfoot td.mg { background:var(--head); } /* khóa cột Mệnh giá khi vuốt ngang */
+  .kpi4 .cot div.dam { background:#13804a; border-color:#13804a; color:#fff; } .kpi4 .cot div.dam b { font-size:18px; }
+  /* menu trượt từ trái */
+  nav { position:fixed; top:0; left:0; bottom:0; width:250px; max-width:80vw; background:#fff; z-index:40; display:flex; flex-direction:column;
+        transform:translateX(-105%); transition:transform .2s; box-shadow:2px 0 12px rgba(0,0,0,.2); overflow-y:auto; }
+  nav.open { transform:none; }
+  nav .navHead { background:var(--red); color:#fff; padding:16px; font-weight:600; }
+  nav button { border:0; background:none; padding:14px 18px; font-size:15px; text-align:left; border-left:4px solid transparent; cursor:pointer; }
+  nav button.on { border-left-color:var(--red); color:var(--red); font-weight:600; background:var(--bg); }
+  nav button[hidden] { display:none; } nav .dangXuat { margin-top:auto; color:#a00; border-top:1px solid var(--line); }
+  #nen { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:30; display:none; } #nen.on { display:block; }
+  #login { position:fixed; inset:0; background:var(--bg); z-index:50; display:flex; align-items:center; justify-content:center; padding:16px; }
+  #login[hidden] { display:none; } #login .card { width:100%; max-width:340px; padding:20px; }
+  #login h3 { margin:0 0 12px; color:var(--red); } #login input { width:100%; } #login label { margin-bottom:10px; }
+  section { display:none; padding:12px 16px 80px; } section.on { display:block; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:end; margin-bottom:10px; }
+  label { font-size:12px; color:#666; display:flex; flex-direction:column; gap:2px; }
+  input, select { font-size:15px; padding:7px 8px; border:1px solid #bbb; border-radius:6px; background:#fff; }
+  button.b { padding:9px 14px; border:0; border-radius:6px; background:var(--red); color:#fff; font-size:14px; font-weight:600; }
+  button.g { background:#555; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:10px; }
+  .msg { padding:8px 10px; border-radius:6px; margin:8px 0; display:none; } .msg.on { display:block; }
+  .msg.ok { background:#e6f4ea; color:var(--ok); } .msg.err { background:#fde8e8; color:#a00; } .msg.warn { background:#fff4e0; color:var(--warn); }
+  .tw { overflow:auto; max-height:70vh; background:#fff; border:1px solid var(--line); border-radius:8px; }
+  .tw.dai { max-height:none; } /* bảng kéo dài hết danh sách, không khóa cuộn bên trong */
+  /* dòng tiêu đề nổi của bảng kiểm tồn: dính dưới thanh tiêu đề app khi kéo trang */
+  #gridHead { position:fixed; z-index:15; overflow:hidden; background:var(--head); border:1px solid var(--line); border-top:0; box-shadow:0 2px 4px rgba(0,0,0,.08); }
+  #gridHead table { width:auto; } #gridHead th { position:static; } #gridHead th:first-child { position:sticky; left:0; }
+  /* màu cột bảng kiểm tồn & báo cáo */
+  input[data-f="nhap"] { color:#1a56c4; font-weight:700; } th.cNhap { color:#1a56c4; }
+  input[data-f="huy"], td.cHuy { color:#c62828; font-weight:700; } th.cHuy { color:#c62828; }
+  input[data-f="online"], td.cOnl { color:#d0338a; font-weight:700; } th.cOnl { color:#d0338a; }
+  td.br, td.cBan { background:#fff1cc; font-weight:700; color:#7a4a00; } th.cBan { background:#ffe4a3; color:#7a4a00; }
+  td.cTon { background:#dff3f7; font-weight:700; color:#0b5d6e; } th.cTon { background:#c4e8f0; color:#0b5d6e; }
+  tr.mo td, tr.mo td.sp { background:#fff59d !important; } /* AI đọc không rõ */
+  #grid tr.an { display:none; } /* mã tồn 0 suốt 7 ngày */
+  tr.am td, tr.am td.sp { background:#ffd6d6 !important; } tr.am td.br { color:#b00000; } /* số âm */
+  td input.lechTD { background:#ffd8a8 !important; border:2px solid #f08a00; font-weight:700; }
+  td input[readonly] { background:#eef5f0; color:#333; border-color:#cfe5d6; } /* tồn đầu đã khóa sau xác nhận */
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { border:1px solid var(--line); padding:4px 6px; text-align:center; vertical-align:middle; white-space:nowrap; }
+  th { position:sticky; top:0; background:var(--head); z-index:2; font-weight:600; }
+  td:first-child, th:first-child { position:sticky; left:0; background:#fff; text-align:left; z-index:1; max-width:120px; overflow:hidden; text-overflow:ellipsis; }
+  td.sp { cursor:pointer; white-space:normal; min-width:132px; max-width:160px; line-height:1.25; box-shadow:2px 0 0 var(--line); } td.sp.full { max-width:200px; } td.sp .q { color:#888; font-size:11px; }
+  th:first-child { z-index:3; background:var(--head); }
+  td input { width:50px; padding:4px; font-size:14px; text-align:center; }
+  .ma { color:#888; font-size:11px; display:block; }
+  tr.chua td { background:#fff4e0; } tr.ocr td:first-child { border-left:3px solid var(--ok); }
+  .neg { color:#a00; font-weight:600; } .pos { color:var(--ok); font-weight:600; }
+  tfoot td { font-weight:700; background:var(--head); position:sticky; bottom:0; }
+  .xn { border-left:4px solid var(--warn); } .xn.ok { border-left-color:var(--ok); } .xn.sai { border-left-color:#c33; }
+  button.xnD { background:var(--ok); } button.xnS { background:#c33; }
+  .kpi { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin-bottom:10px; }
+  .kpi div { background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px; }
+  .kpi b { display:block; font-size:18px; }
+  .small { font-size:12px; color:#666; }
+  .wk td, .wk th { text-align:center; } .wk td:first-child { text-align:left; }
+  .wk input[type=checkbox] { width:22px; height:22px; }
+  .chip { display:inline-flex; flex-direction:row; align-items:center; gap:4px; margin:2px; padding:3px 8px; border:1px solid #bbb; border-radius:14px; font-size:13px; background:#fff; }
+  .chip.dk { border-color:var(--ok); background:#eef7f0; } .chip input { width:16px; height:16px; margin:0; }
+  .day { background:#fff; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; overflow:hidden; }
+  .day h5 { margin:0; padding:6px 10px; background:#fafafa; border-bottom:1px solid #eee; font-size:14px; display:flex; justify-content:space-between; }
+  .slot { display:flex; gap:8px; align-items:flex-start; padding:6px 10px; border-bottom:1px solid #f2f2f2; }
+  .slot:last-child { border-bottom:0; } .gap { color:#a00; font-size:12px; padding:4px 10px; background:#fdeeee; }
+  .slot .lb { width:78px; flex:none; font-size:12px; color:#555; } .slot .lb b { display:block; color:#222; font-size:13px; }
+  .slot .ppl { flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; }
+  .badge { display:inline-block; min-width:20px; padding:0 6px; border-radius:10px; font-size:11px; font-weight:700; text-align:center; background:#eee; color:#555; }
+  .badge.z { background:#f6c9c9; color:#a00; } .badge.ok { background:#cfe9d6; color:var(--ok); }
+  .slot select { font-size:12px; padding:2px 4px; }
+  .sap td { vertical-align:top; text-align:center; padding:4px; }
+  .sap td:first-child, .wk td:first-child, #lichToiTbl td:first-child { text-align:left; font-weight:700; color:#000; }
+  .sap select { display:block; width:86px; font-size:12px; padding:3px; margin:2px auto; }
+  .sap select.reg { border-color:var(--ok); background:#eef7f0; }
+  .sap .dk { font-size:11px; color:#666; white-space:normal; max-width:90px; margin:2px auto 0; }
+  .sap td.tcc { text-align:left; min-width:110px; }
+  .tag { display:inline-block; padding:0 6px; border-radius:8px; border-left:3px solid; margin:1px; }
+  .legend { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#555; margin:6px 0; }
+  /* 9 chỉ số chốt tiền: 4 cột nhỏ, mỗi cột xếp dọc */
+  .kpi4 { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px; margin-bottom:10px; }
+  .kpi4 .cot { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .kpi4 .cot div { background:#fff; border:1px solid var(--line); border-radius:8px; padding:6px; font-size:11px; line-height:1.25; }
+  .kpi4 b { display:block; font-size:15px; } .kpi4 div.bad { border-color:#e0a0a0; background:#fde8e8; } .kpi4 div.alert { border-color:#f0c070; background:#fff4e0; }
+  tr.tongTo td { font-weight:700; background:var(--head); }
+  .kpi div.bad { border-color:#e0a0a0; background:#fde8e8; } .kpi div.alert { border-color:#f0c070; background:#fff4e0; }
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#13804a; color:#fff; padding:10px 18px; border-radius:20px; font-weight:600; box-shadow:0 4px 14px rgba(0,0,0,.2); z-index:99; opacity:0; pointer-events:none; transition:opacity .25s; }
+  #toast.on { opacity:1; }
+  /* Giải thích gom vào nút ? — bấm mới hiện */
+  button.hoi { width:24px; height:24px; border-radius:50%; border:1.5px solid var(--red); background:#fff; color:var(--red); font-weight:800; padding:0; margin:2px 0 4px; cursor:pointer; line-height:1; }
+  button.hoi.on { background:var(--red); color:#fff; } .gt { background:#f4faf6; border:1px dashed var(--line); border-radius:6px; padding:6px 8px; }
+  /* Popup nhắc hẹn */
+  #nhac { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:60; display:flex; align-items:center; justify-content:center; padding:16px; }
+  #nhac[hidden] { display:none; } #nhac .card { max-width:380px; width:100%; border-left:6px solid #f08a00; box-shadow:0 8px 30px rgba(0,0,0,.3); }
+  #nhac h3 { margin:0 0 8px; color:#b25a00; } #nhac ul { margin:6px 0 10px; padding-left:20px; } #nhac .row { justify-content:flex-end; margin:0; }
+  .tcr { display:flex; align-items:center; gap:4px; margin:2px 0; white-space:nowrap; } .tcr input { width:56px; padding:4px; }
+  .lg td:first-child, .lg th:first-child { text-align:left; } tr.tongR td { font-weight:700; background:var(--head); }
+  .pnl td:first-child { text-align:left; } .pnl input { width:110px; } .pnl tr.kq td { font-weight:700; background:var(--head); }
+  .bar { height:8px; background:#13804a; border-radius:4px; min-width:2px; }
+  tr.canhBao td { background:#fde8e8; } tr.sapHet td { background:#fff4e0; }
+  /* Tồn kho: đỏ = không đủ bán ca sau, vàng = có thể hết trước hết ngày mai */
+  tr.tkDo td, tr.tkDo td.sp { background:#f9c4c4 !important; } tr.tkVang td, tr.tkVang td.sp { background:#fff0a3 !important; }
+  td.dat { font-weight:700; font-size:15px; color:#1a56c4; }
+  /* Đơn hàng lớn: mẫu dọc theo nhóm màu */
+  .dh td { text-align:left; white-space:normal; } .dh td.nh { font-weight:700; text-align:center; color:#fff; width:96px; position:static; }
+  .dh td.lb { font-weight:600; width:150px; position:static; } .dh input, .dh select { width:100%; font-size:14px; padding:5px 6px; }
+  .dh tr.tong td { background:#ffff66; font-weight:700; color:#c00; } .dh tr.tong input { font-weight:700; }
+  tr.sap td { background:#fff4e0; } tr.xong td { color:#888; }
+  /* Tổng quan: biểu đồ cột theo ngày (xanh lá = tổng thu, xanh dương = LN, đỏ = lỗ) */
+  .chart { display:flex; align-items:stretch; gap:3px; height:160px; overflow-x:auto; padding:6px 4px 2px; background:#fff; border:1px solid var(--line); border-radius:8px; margin-bottom:10px; }
+  .chart .c { flex:1 0 16px; display:flex; flex-direction:column; align-items:center; font-size:10px; color:#666; }
+  .chart .c > div { flex:1; width:100%; display:flex; gap:1px; align-items:flex-end; }
+  .chart i { flex:1; display:block; background:#13804a; min-height:1px; border-radius:2px 2px 0 0; } .chart i.l { background:#3a73cc; } .chart i.am { background:#c62828; }
 </style>
 </head>
 <body>
-<div id="man">
-  <img src="icon-192.png" alt="">
-  <b>Kiểm tồn cửa hàng</b>
-  <div class="xoay" id="xoay"></div>
-  <div class="nho" id="tb">Đang mở app…</div>
-</div>
-<iframe id="app" title="Kiểm tồn cửa hàng" allow="camera; clipboard-write" hidden></iframe>
+<div id="login" hidden><div class="card">
+  <h3>Kiểm tồn cửa hàng</h3>
+  <label>Tên đăng nhập<input id="lgTen" autocomplete="username" placeholder="Tên NV như trong tab TAIKHOAN"></label>
+  <label>Mật khẩu<input id="lgMk" type="password" autocomplete="current-password"></label>
+  <button class="b" id="btnLogin" style="width:100%">Đăng nhập</button>
+  <div class="msg" id="msgLogin"></div>
+</div></div>
+<header id="header"><button id="menuBtn" aria-label="Menu">☰</button><span id="tieuDe">Kiểm tồn ca</span><span id="userBox"></span><button id="btnRf" aria-label="Làm mới" title="Làm mới số liệu" style="background:none;border:0;color:inherit;font-size:20px;padding:0 0 0 8px;cursor:pointer">⟳</button>
+  <div id="thanh"><input type="date" id="ngay" aria-label="Ngày"><select id="ca" aria-label="Ca"></select><select id="nv" aria-label="Nhân viên"></select></div>
+</header>
+<div id="nen"></div>
+<nav id="menu">
+  <div class="navHead">Kiểm tồn cửa hàng<div class="small" style="color:#e6f4ea" id="navUser"></div></div>
+  <button data-t="tq">Tổng quan</button>
+  <button data-t="nhap" class="on">Kiểm tồn ca</button>
+  <button data-t="chot">Chốt tiền</button>
+  <button data-t="tk">Tồn kho</button>
+  <button data-t="dh">Đơn hàng lớn</button>
+    <button data-t="bc">Báo cáo</button>
+  <button data-t="lich">Lịch ca</button>
+  <button data-t="tienchi">Tiền chi</button>
+  <button data-t="luong">Lương</button>
+  <button data-t="pnl">P&amp;L</button>
+  <button data-t="pt">Phân tích</button>
+  <button class="dangXuat" id="btnLogout">Đăng xuất</button>
+</nav>
+
+<!-- TỔNG QUAN THÁNG (chỉ Quản lý) -->
+<section id="tq">
+  <div class="row"><label>Tháng<input type="month" id="ovThang"></label></div>
+  <p class="small" id="ovInfo"></p>
+  <div class="msg" id="msgOv"></div>
+  <div class="kpi" id="ovKpi"></div>
+  <div id="ovNvGhiChu" hidden><p class="small gt">Doanh thu = doanh số file các mốc bạn đứng ca (2 người cùng ca thì chia đều). Kiểm tồn sai = số lần ca sau đếm lại và báo phiếu của bạn Sai. Tiền lệch = Σ (TM bán + CK − doanh thu file) các lần bạn chốt tiền; âm = thiếu tiền.</p></div>
+  <div id="ovQL">
+  <h4>Doanh thu &amp; lợi nhuận theo ngày <span class="small">(nghìn đ · xanh lá = doanh thu · xanh dương = lợi nhuận · đỏ = lỗ)</span></h4>
+  <div class="chart" id="ovChart"></div>
+  <h4>Cơ cấu chi phí (nghìn đ)</h4>
+  <div class="tw"><table class="pnl" id="ovCp"></table></div>
+  <h4>Kiểm soát vận hành</h4>
+  <div class="kpi" id="ovVh"></div>
+  <p class="small" id="ovHet"></p>
+  </div>
+  <h4>Top 10 bán chạy cả cửa hàng (theo số lượng)</h4>
+  <div class="tw"><table id="ovTop"></table></div>
+  <div id="ovNvBox">
+  <h4>Hiệu suất &amp; ca làm việc nhân viên</h4>
+  <div class="tw"><table class="lg" id="ovNv"></table></div>
+  <p class="small gt">Số ca, giờ làm theo lịch đã chốt (+/- giờ làm, không tính ca phụ). DS mốc kiểm = doanh số file các phiếu kiểm tồn NV đó lưu — gần đúng, vì 1 mốc gồm cả giờ bán trước khi NV vào ca. DS/giờ = DS mốc kiểm ÷ giờ làm. XN tồn Sai = số lần phiếu của NV bị ca sau báo Sai. Lệch file = Σ (TM bán + CK − doanh thu file) các lần NV chốt tiền.</p>
+  </div>
+</section>
+
+<!-- KIỂM TỒN CA -->
+<section id="nhap" class="on">
+  <div class="card">
+    <div class="row">
+      <label>Ảnh phiếu kiểm tồn<input type="file" id="anh" accept="image/*" capture="environment"></label>
+      <button class="b" id="btnDoc">Đọc ảnh</button>
+    </div>
+    <div class="row" id="posCard" style="margin-top:8px"><label>File POS KiotViet (.xlsx/.csv) — tự chia theo ngày giờ trên file<input type="file" id="posFile" accept=".xlsx,.xls,.csv"></label></div>
+    <div class="small" id="tonDauInfo"></div><button class="b g" id="btnAn" hidden style="padding:3px 8px;font-size:12px;margin:4px 0" onclick="HIEN_HET=!HIEN_HET;anHien()"></button>
+    <div class="small" id="thieuMa"></div>
+  </div>
+  <div class="msg on" id="aiKT" hidden></div>
+  <div class="card xn" id="xnCard"></div>
+  <div class="msg" id="msgNhap"></div>
+  <div class="row"><button class="b" id="btnLuu">💾 Lưu thay đổi</button></div>
+  <div class="kpi" id="kpiNhap"></div>
+  <div class="msg" id="amNhap"></div>
+  <div class="tw dai" id="gridWrap"><table id="grid"></table></div>
+  <div id="gridHead" hidden></div>
+</section>
+
+<!-- CHỐT TIỀN -->
+<section id="chot">
+  <div class="msg on" id="aiChot" hidden></div>
+  <div class="card" id="caTruoc"></div>
+  <div class="card tw" style="padding-left:0"><table id="tblTo"></table></div>
+  <div class="card">
+    <div class="row">
+      <label>Chuyển khoản<input type="number" id="ck"></label>
+      <label>Doanh thu KiotViet<input type="number" id="app"></label>
+    </div>
+    <div class="row">
+      <label>Quỹ đầu ca<input type="number" id="tienQuy"></label>
+      <label>Chi trong ca<input type="number" id="chi" readonly style="background:#eef5f0"></label>
+      <label>Bổ sung quỹ (thực tế)<input type="number" id="boSung"></label>
+    </div>
+    <div class="row"><label>Ghi chú<input id="ghiChu"></label></div>
+  </div>
+  <div class="kpi4" id="kpiChot"></div>
+  <div class="msg" id="warnChot"></div>
+  <div class="msg" id="msgChot"></div>
+  <button class="b" id="btnChot">💾 Lưu thay đổi</button>
+  <h4 style="margin-top:20px">Tổng quan chốt tiền</h4>
+  <div class="row"><label>Ngày<input type="date" id="tqNgay"></label><span class="small" id="tqGhiChu"></span></div>
+  <div class="tw dai"><table id="tqTbl"></table></div>
+  <div class="msg" id="msgTq"></div>
+</section>
+
+
+<!-- TỒN KHO -->
+<section id="tk">
+  <p class="small" id="tkInfo"></p>
+  <div class="msg" id="msgTk"></div>
+  <div class="kpi" id="tkKpi"></div>
+  <div class="legend gt"><span><svg width="16" height="14" viewBox="0 0 18 16"><path d="M9 1 17 15H1Z" fill="#d32f2f"/></svg> Đỏ = không đủ bán ca sau</span><span><svg width="16" height="14" viewBox="0 0 18 16"><path d="M9 1 17 15H1Z" fill="#f2b600"/></svg> Vàng = có thể hết trước hết ngày mai</span><span>Đặt (gói) = dự báo × 1,1 − tồn, lẻ ≥ 0,5 gói làm tròn lên</span></div>
+  <div class="tw dai"><table id="tkTbl"></table></div>
+</section>
+
+<!-- ĐƠN HÀNG LỚN BÁNH NÓNG -->
+<section id="dh">
+  <div class="row"><label>Tháng<input type="month" id="dhThang"></label><button class="b" id="dhMoi">+ Đơn mới</button></div>
+  <div class="msg" id="msgDh"></div>
+  <div class="tw"><table id="dhDs"></table></div>
+  <h4 id="dhTieuDe">Đơn mới</h4>
+  <div class="tw dai"><table class="dh" id="dhForm"></table></div>
+  <datalist id="dl_ten"></datalist><datalist id="dl_nguon"><option>Khách đến cửa hàng</option><option>Facebook</option><option>Zalo</option><option>TikTok</option><option>Điện thoại</option><option>Khách quen</option></datalist><datalist id="dl_nhanSu"></datalist><datalist id="dl_quyCach"><option>Rời</option><option>Gói 4 cái</option><option>Hộp 6 cái</option><option>Hộp 10 cái</option></datalist>
+  <div class="row" style="margin-top:10px"><button class="b" id="dhLuu">💾 Lưu đơn</button><button class="b g" id="dhXoa" hidden>Xóa đơn</button></div>
+</section>
+
+<!-- BÁO CÁO -->
+<section id="bc">
+  <div class="row">
+    <label>Tháng<input type="month" id="thang"></label>
+    <label>Xem<select id="kieu"><option value="ngay">Theo ngày (chi tiết ca)</option><option value="thang">Theo tháng</option></select></label>
+    <label id="lbNgayBC">Ngày<input type="date" id="ngayBC"></label>
+    <button class="b g" id="btnBC">Xem</button>
+  </div>
+  <div class="msg" id="msgBC"></div>
+  <div class="kpi" id="kpiBC"></div>
+  <div class="tw"><table id="tblBC"></table></div>
+  <h4 id="h2BC"></h4>
+  <div class="tw"><table id="tblBC2"></table></div>
+  <h4 id="h3BC"></h4>
+  <div class="tw"><table id="tblBC3"></table></div>
+</section>
+
+<!-- LỊCH CA: ĐĂNG KÝ + SẮP CA -->
+<section id="lich">
+  <div class="row">
+    <label>Tuần có ngày<input type="date" id="lTuan"></label>
+    <button class="b g" id="lTruoc">‹</button><button class="b g" id="lSau">›</button>
+  </div>
+  <p class="small" id="lInfo"></p>
+
+  <div class="card">
+    <h4 style="margin:0 0 8px">① Nhân viên đăng ký</h4>
+    <div class="row"><label>Tên của bạn<select id="dkNv"></select></label></div>
+    <div class="tw"><table class="wk" id="dkTbl"></table></div>
+    <div class="msg" id="msgDk"></div>
+    <div class="row" style="margin-top:8px"><button class="b" id="btnDk">💾 Lưu thay đổi</button></div>
+  </div>
+
+  <div id="lichToi" hidden><h4>Lịch đã được xếp của bạn</h4><div class="tw"><table id="lichToiTbl"></table></div></div>
+  <div id="sapSec">
+  <h4>② Tổng hợp đăng ký &amp; sắp ca</h4>
+  <div class="legend gt"><span>Mỗi ca tối đa 3 người</span><span>Mỗi NV một màu</span><span>Viền liền = NV có đăng ký ca đó · viền đứt = quản lý thêm</span><span>✓ trong danh sách = đã đăng ký</span><span>Cột +/- giờ làm: nhập số PHÚT làm thêm (vd 30) hoặc làm thiếu (vd -15)</span><span>Phụ cấp 25k/ngày khi làm từ 2 ca</span><span>Ca phụ (cột D tab CA = x): chỉ Quản lý thấy, không tính lương, không tính ca/giờ cho NV</span></div>
+  <div class="tw dai"><table class="sap" id="sapTbl"></table></div>
+  <h4>Tổng theo nhân viên</h4>
+  <div class="tw"><table id="sapTong"></table></div>
+  <div class="card" style="margin-top:10px">
+    <div class="row">
+      <label>Người chốt<select id="sapNguoi"></select></label>
+      <button class="b" id="btnSap">💾 Lưu thay đổi (chốt lịch tuần)</button>
+    </div>
+  </div>
+  <div class="msg" id="msgSap"></div>
+  </div>
+</section>
+
+<!-- TIỀN CHI -->
+<section id="tienchi">
+  <div class="card">
+    <div class="row">
+      <label>Tên NV<select id="chiNv"></select></label>
+      <label>Ngày chi<input type="date" id="chiNgay"></label>
+    </div>
+    <div class="row">
+      <label>Mục chi<select id="chiMuc"><option value="">-- chọn --</option><option>Tiền Ship</option><option>Tiền Nguyên Liệu</option><option>Tiền CCDC</option><option>Tiền khác</option></select></label>
+      <label id="lbChiTd" hidden>Tiêu đề khoản chi<input id="chiTd" placeholder="vd: Sửa máy lạnh"></label>
+      <label>Số tiền chi (nghìn đ)<input type="number" id="chiTien" inputmode="numeric"></label>
+    </div>
+    <div class="row"><label style="flex:1">Diễn giải<input id="chiDg" placeholder="vd: mua 2 thùng giấy gói"></label></div>
+    <button class="b" id="btnChi">💾 Lưu khoản chi</button>
+  </div>
+  <div class="msg" id="msgChi"></div>
+  <div class="row"><label>Xem tháng<input type="month" id="chiThang"></label></div>
+  <div class="kpi" id="kpiChi"></div>
+  <div class="tw"><table id="chiTbl"></table></div>
+</section>
+
+<!-- LƯƠNG -->
+<section id="luong">
+  <div class="row">
+    <label>Tháng<input type="month" id="lgThang"></label>
+    <button class="b" id="btnLg">Tính lương</button>
+  </div>
+  <p class="small gt" id="lgInfo"></p>
+  <div class="msg" id="msgLg"></div>
+  <div class="tw"><table id="lgTbl"></table></div>
+  <h4>Lương theo tuần <span class="small">(ngày 1–7, 8–14, 15–21, 22–28, 29–cuối tháng)</span></h4>
+  <div class="tw"><table id="lgTuan" class="lg"></table></div>
+  <h4>Lương theo ngày <span class="small">(lương ca + phụ cấp + tiền +/- giờ làm)</span></h4>
+  <div class="tw dai"><table id="lgNgay" class="lg"></table></div>
+  <h4 id="lgH2"></h4>
+  <div class="tw"><table id="lgCt" class="lg"></table></div>
+</section>
+
+<!-- P&L (chỉ Quản lý) -->
+<section id="pnl">
+  <div class="row"><label>Tháng<input type="month" id="pnThang"></label></div>
+  <div class="msg" id="msgPn"></div>
+  <div class="card">
+    <h4 style="margin:0 0 8px">Chi phí cố định tháng (nghìn đ)</h4>
+    <table class="pnl" id="pnCp"></table>
+    <div class="row" style="margin-top:8px"><button class="b g" id="pnThem">+ Chi phí khác</button><button class="b" id="pnLuu">💾 Lưu thay đổi</button></div>
+  </div>
+  <h4>Kết quả tháng (nghìn đ)</h4>
+  <div class="tw"><table class="pnl" id="pnKq"></table></div>
+  <h4>Lợi nhuận theo ngày (nghìn đ)</h4>
+  <p class="small gt">Doanh thu = số bán ra trên phiếu kiểm tồn (offline + online) × giá bán. Giá vốn = số bán ra × giá vốn (DM_SP cột H ÷ cái/gói). LN = Doanh thu − Giá vốn − Chi phí (lương ngày + tiền chi + CP cố định/ngày). CP cố định/ngày = (Mặt bằng + Điện + Nước + Chi phí khác) ÷ số ngày trong tháng. Lệch tiền = cộng dồn ô 'Lệch file' của từng lần chốt tiền (TM bán + CK − doanh thu file của mốc đó); âm = thiếu tiền. Chỉ theo dõi, không trừ vào LN. Tiền nhà (Mặt bằng) mặc định 10.000k nếu tháng chưa lưu.</p>
+  <div class="tw dai"><table id="pnNgay"></table></div>
+</section>
+
+<!-- PHÂN TÍCH (mọi người) -->
+<section id="pt">
+  <div class="row">
+    <label>Xem theo<select id="ptKieu"><option value="d">Ngày</option><option value="w">Tuần</option><option value="m" selected>Tháng</option></select></label>
+    <label>Ngày<input type="date" id="ptNgay"></label>
+    <label>Xếp theo<select id="ptXep"><option value="sl">Số lượng</option><option value="ds">Doanh số</option></select></label>
+  </div>
+  <p class="small" id="ptInfo"></p>
+  <div class="msg" id="msgPt"></div>
+  <h4>⚠ Cảnh báo tồn kho</h4>
+  <div class="tw"><table id="ptTon"></table></div>
+  <h4>Top SKU bán chạy</h4>
+  <div class="tw"><table id="ptTop"></table></div>
+  <h4 id="ptH3"></h4>
+  <div class="tw"><table id="ptNgayTbl"></table></div>
+</section>
+<div id="toast"></div>
+<div id="nhac" hidden><div class="card"><h3 id="nhacTieuDe"></h3><div id="nhacNoiDung"></div><div class="row"><button class="b g" id="nhacMo" hidden>Mở Kiểm tồn ca</button><button class="b" id="nhacOk">Đã biết</button></div></div></div>
+
 <script>
-  // ===== DÁN LINK WEBAPP APPS SCRIPT (kết thúc bằng /exec) VÀO GIỮA HAI DẤU NHÁY =====
-  const APP_URL = 'https://script.google.com/macros/s/AKfycbw9VUNYiD5XAHs1d384y1un8CPYlfSx9teAY7z9rLGiQcKoGQweWq4-zEkhJTENdAsG/exec';
-  // ===================================================================================
-  const man = document.getElementById('man'), tb = document.getElementById('tb'), fr = document.getElementById('app');
-  // Nhớ đăng nhập: vỏ app lưu phiên do webapp gửi ra, lần sau gửi kèm khi mở → vào thẳng, không phải đăng nhập lại
-  const doc = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-  addEventListener('message', e => {
-    let host = ''; try { host = new URL(e.origin).hostname; } catch (x) { return; }
-    if (!/(^|\.)googleusercontent\.com$|^script\.google\.com$/.test(host) || !e.data || !('kt_tok' in e.data)) return; // chỉ nhận từ webapp Apps Script
-    try { e.data.kt_tok ? localStorage.setItem('kt_tok', e.data.kt_tok) : localStorage.removeItem('kt_tok'); } catch (x) {}
-  });
-  function moApp() {
-    if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(APP_URL)) {
-      document.getElementById('xoay').hidden = true;
-      tb.textContent = 'Chưa gắn link webapp. Mở file index.html, dán link Apps Script (kết thúc bằng /exec) vào dòng APP_URL.';
-      return;
-    }
-    if (!navigator.onLine) {
-      document.getElementById('xoay').hidden = true;
-      tb.innerHTML = 'Không có mạng. App cần Internet để đọc/ghi Google Sheet.<br><br><button onclick="location.reload()">Thử lại</button>';
-      return;
-    }
-    const t = doc('kt_tok');
-    fr.hidden = false; fr.src = APP_URL + (t ? (APP_URL.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(t) : '');
-    fr.onload = () => { man.style.display = 'none'; };
-    setTimeout(() => { if (man.style.display !== 'none') tb.textContent = 'Mạng chậm, vẫn đang mở…'; }, 8000);
+const $ = id => document.getElementById(id);
+// Mọi đoạn giải thích (class gt) gom vào nút "?" — bấm mới hiện, bấm lần nữa ẩn
+document.querySelectorAll('.gt').forEach(el => { const b = document.createElement('button'); b.type = 'button'; b.className = 'hoi'; b.textContent = '?'; b.title = 'Giải thích';
+  b.onclick = () => { el.hidden = !el.hidden; b.classList.toggle('on', !el.hidden); }; el.hidden = true; el.before(b); });
+/* ---------- ĐĂNG NHẬP ---------- */
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
+let TOK = lsGet('kt_tok') || (typeof TOK0 !== 'undefined' && TOK0) || null, ME = JSON.parse(lsGet('kt_me') || 'null'); // {ten, role}
+// Gửi phiên đăng nhập ra vỏ app (PWA) để vỏ lưu lại → lần sau mở app vào thẳng, không phải đăng nhập (chỉ gửi cho vỏ app của mình)
+const VO_APP = 'https:\/\/phuctai90.github.io';
+const guiVo = () => { try { window.top.postMessage({ kt_tok: TOK }, VO_APP); } catch (e) {} };
+const laQL = () => ME && ME.role === 'Quản lý';
+// Mọi lệnh gọi server đi qua api(fn, token, args) — server kiểm tra quyền
+// 2 cách gọi server: giao diện đặt trên GitHub Pages (có API_URL) → fetch tới /exec; chạy trong Apps Script → google.script.run
+const goi = (fn, tok, a) => window.API_URL
+  ? fetch(window.API_URL, { method: 'POST', body: JSON.stringify({ fn, tok, args: a }) }) // text/plain → không bị chặn CORS
+      .then(r => r.json(), () => { throw new Error('Không kết nối được máy chủ — kiểm tra mạng rồi thử lại.'); })
+      .then(r => { if (!r.ok) throw new Error(r.err); return r.data; }, e => { throw /máy chủ/.test(e.message) ? e : new Error('Máy chủ bận, thử lại sau ít giây.'); })
+  : new Promise((ok, no) => google.script.run.withSuccessHandler(ok).withFailureHandler(no).api(fn, tok, a));
+const run = (fn, ...a) => goi(fn, TOK, a).catch(e => { if (/đăng nhập/i.test(e.message || e)) dangXuat(e.message); throw e; });
+function dangXuat(lyDo) { TOK = null; ME = null; lsSet('kt_tok', null); lsSet('kt_me', null); guiVo(); $('login').hidden = false; if (lyDo) msg('msgLogin', lyDo, 'warn'); }
+async function dangNhap() {
+  try {
+    const r = await goi('login', null, [$('lgTen').value, $('lgMk').value]);
+    TOK = r.tok; ME = { ten: r.ten, role: r.role }; lsSet('kt_tok', TOK); lsSet('kt_me', JSON.stringify(ME)); guiVo(); lsSet('kt_ten', r.ten);
+    $('lgMk').value = ''; $('msgLogin').className = 'msg'; $('login').hidden = true;
+    boot(); // vào app luôn, không tải lại trang (Apps Script không hỗ trợ reload)
+  } catch (e) { msg('msgLogin', e.message || e, 'err'); }
+}
+const fmt = n => (Math.round(n) || 0).toLocaleString('vi-VN');
+const cls = n => n < 0 ? 'neg' : n > 0 ? 'pos' : '';
+const today = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+const msg = (id, text, type) => { const m = $(id); m.className = 'msg on ' + type; m.textContent = text; };
+let TOAST_T; const toast = (t = '✓ Đã lưu') => { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(TOAST_T); TOAST_T = setTimeout(() => e.classList.remove('on'), 2200); };
+const F = ['tonDau', 'nhap', 'chan', 'le', 'tu', 'huy', 'online'];
+const FN = ['Tồn đầu<br><small>cái</small>', 'Nhập<br><small>gói</small>', 'Gói', 'Lẻ', 'Tồn tủ<br><small>cái</small>', 'Hủy<br><small>cái</small>', 'Online<br><small>cái</small>'];
+const FCLS = { nhap: 'cNhap', huy: 'cHuy', online: 'cOnl' };
+/** Tên gọn: bỏ 'Banh Bao TP', 'BB TP', 'Banh'… */
+const gon = t => String(t || '').replace(/^(banh bao|bb|banh)\s+/i, '').replace(/^tp\s+/i, '').trim() || t;
+const spCell = (ten, ma, them = '') => `<td class="sp" title="${ten}"><span class="tn">${gon(ten)}</span><span class="ma">${ma}${them}</span></td>`;
+const NV_NEN = ['#ffd9d9', '#d6e6ff', '#d6f2cf', '#fff0b0', '#ead9ff', '#ffe1c4', '#cdf2ef', '#fbd5ea', '#e4ebc6', '#d9ddf7', '#f3dccd', '#d2efdf'];
+const NV_VIEN = ['#d14343', '#3a73cc', '#3a8f2c', '#b88a00', '#7f49c4', '#d9721a', '#1d918a', '#bf3f8a', '#71832a', '#4f5dbf', '#a9603a', '#2a8c59'];
+const mauNV = ten => { const i = INIT.nv.findIndex(n => n.ten === ten); return i < 0 ? ['#eeeeee', '#999999'] : [NV_NEN[i % 12], NV_VIEN[i % 12]]; };
+const tagNV = ten => { const [n, v] = mauNV(ten); return `<span class="tag" style="background:${n};border-color:${v}">${ten}</span>`; };
+const conLam = () => INIT.nv.filter(n => n.tt !== 'Nghỉ việc');
+let ANH_P = null;
+let TONG_CHI = 0, CHI_CA = [];
+let ANH_TRUOC = '', ANH_NAY = '';
+let LICH_NGAY = [], KHOA_KT = '', KHOA_CHOT = '', LUC = { kt: 0, chot: 0 }, CHU = { kt: '', chot: '' }, AI = {}, TRUOC = null, XN = null; // tồn cuối ca trước + trạng thái xác nhận của phiếu đang mở
+let INIT, ANH = '', POSINFO = { coPos: false, posTien: 0, posTM: 0, posCK: 0, coTT: false, sl: {} };
+const caSel = () => INIT.ca.find(c => c.ten === $('ca').value);
+const MOC = () => [...new Set(INIT.ca.map(c => c.kt))].sort(); // mốc kiểm tồn = giờ kết thúc ca (gồm ca phụ)
+const gh = t => +t.slice(0, 2) + 'h' + (t.slice(3) === '00' ? '' : t.slice(3)); // 05:00 → 5h, 15:30 → 15h30
+/* ---------- Thanh Ngày · Ca · NV: ngày đã qua chỉ hiện ca có người làm + NV đã làm ca đó ---------- */
+let NGAY_NV = null; // { tênCa: [NV] } của ngày đã qua; null = hôm nay/tương lai (hiện đủ)
+function veCa() {
+  const cu = $('ca').value, ds = INIT.ca.filter(c => (laQL() || !c.phu) && (!NGAY_NV || NGAY_NV[c.ten]));
+  $('ca').innerHTML = ds.map(c => `<option value="${c.ten}">${c.ten}${c.phu ? ' (phụ)' : ''} · ${gh(c.bd)}–${gh(c.kt)}</option>`).join('');
+  if (ds.some(c => c.ten === cu)) $('ca').value = cu;
+}
+async function locNgay() {
+  const n = $('ngay').value;
+  NGAY_NV = n && n < today() ? await run('getNgay', n) : null;
+  if (NGAY_NV && !Object.keys(NGAY_NV).length) NGAY_NV = null; // ngày không có lịch/số liệu → hiện đủ ca để nhập bù
+  veCa();
+}
+/** Tên NV ghi vào phiếu khi lưu: ô NV đang ghép "Thy + Trâm" → giữ người đã lưu phần đó, chưa có thì lấy người đầu. */
+const nvLuu = p => { const v = $('nv').value; return v.includes(' + ') ? (CHU[p] || (laQL() ? v.split(' + ')[0] : ME.ten)) : v; };
+const mocLabel = m => m + ' · ' + INIT.ca.filter(c => c.kt === m).map(c => c.ten).join('/');
+
+const ON_TAB = {}; // việc cần làm khi mở từng tab (gán trong boot)
+const moMenu = on => { $('menu').classList.toggle('open', on); $('nen').classList.toggle('on', on); };
+document.querySelectorAll('nav button[data-t]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button, section').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); $(b.dataset.t).classList.add('on'); $('tieuDe').textContent = b.textContent; moMenu(false); scrollTo(0, 0); dinhTieuDe();
+  if (ON_TAB[b.dataset.t]) ON_TAB[b.dataset.t]();
+});
+$('menuBtn').onclick = () => moMenu(!$('menu').classList.contains('open')); $('nen').onclick = () => moMenu(false);
+$('btnLogout').onclick = () => { moMenu(false); dangXuat('Đã đăng xuất.'); };
+$('btnLogin').onclick = dangNhap; $('lgTen').value = lsGet('kt_ten') || ''; // nhớ tên đăng nhập $('lgMk').onkeydown = e => { if (e.key === 'Enter') dangNhap(); };
+
+/* ---------- KIỂM TỒN CA ---------- */
+function drawGrid() {
+  const h = '<thead><tr><th>Sản phẩm</th>' + FN.map((x, i) => `<th class="${FCLS[F[i]] || ''}">${x}</th>`).join('') + '<th>Tồn cuối<br><small>cái</small></th><th class="cBan">Bán ra offline<br><small>cái</small></th><th class="cPos">POS OUT<br><small>cái</small></th><th>Lệch POS<br><small>off+onl−POS</small></th></tr></thead>';
+  const b = INIT.sp.map(s => `<tr data-ma="${s.ma}" data-q="${s.caiGoi}">` + spCell(s.ten, s.ma, ` · <span class="q">${s.caiGoi}c/gói</span>`) +
+    F.map(f => `<td><input type="number" inputmode="numeric" data-f="${f}"></td>`).join('') + '<td class="tc"></td><td class="br"></td><td class="po cPos"></td><td class="lp"></td></tr>').join('');
+  $('grid').innerHTML = h + '<tbody>' + b + '</tbody><tfoot><tr><td>Tổng</td>' + F.map(f => `<td id="sum_${f}"></td>`).join('') + '<td id="sum_tc"></td><td id="sum_br"></td><td id="sum_po"></td><td id="sum_lp"></td></tr></tfoot>';
+  $('grid').oninput = e => { const tr = e.target.closest('tr'); if (tr) tr.classList.remove('mo'); calc(); if (e.target.dataset.f === 'tonDau') veXacNhan(); baoNhap('kt'); }; // sửa dòng → bỏ tô vàng
+  $('gridWrap').onscroll = dinhTieuDe; $('gridHead').dataset.v = '';
+}
+/** Khóa tiêu đề: khi dòng tiêu đề bảng kiểm tồn trôi khỏi màn hình → hiện bản sao dính dưới thanh tiêu đề app,
+ *  cuộn ngang theo bảng; cột Sản phẩm luôn đứng yên (sticky trái). */
+function dinhTieuDe() {
+  const wrap = $('gridWrap'), head = $('gridHead'), th = $('grid').tHead;
+  if (!th || !$('nhap').classList.contains('on')) { head.hidden = true; return; }
+  const top = $('header').getBoundingClientRect().bottom, r = th.getBoundingClientRect(), t = $('grid').getBoundingClientRect(), w = wrap.getBoundingClientRect();
+  const hien = r.top < top && t.bottom > top + r.height * 2;
+  head.hidden = !hien; if (!hien) return;
+  if (!head.firstChild || head.dataset.v !== String($('grid').offsetWidth)) { // dựng lại bản sao khi độ rộng đổi
+    const tb = document.createElement('table'), cl = th.cloneNode(true), goc = th.querySelectorAll('th');
+    cl.querySelectorAll('th').forEach((c, i) => { c.style.width = c.style.minWidth = c.style.maxWidth = goc[i].getBoundingClientRect().width + 'px'; });
+    tb.appendChild(cl); tb.style.width = $('grid').offsetWidth + 'px'; head.innerHTML = ''; head.appendChild(tb); head.dataset.v = String($('grid').offsetWidth);
   }
-  addEventListener('online', () => { if (fr.hidden) location.reload(); });
-  moApp();
+  head.style.top = top + 'px'; head.style.left = w.left + 'px'; head.style.width = w.width + 'px';
+  head.scrollLeft = wrap.scrollLeft;
+}
+addEventListener('scroll', dinhTieuDe, { passive: true }); addEventListener('resize', () => { $('gridHead').dataset.v = ''; dinhTieuDe(); });
+let AN_MA = new Set(), HIEN_HET = false;
+function anHien() { // ẩn mã tồn 0 suốt 7 ngày, trừ dòng đang có số; nút bật/tắt
+  let n = 0; $('grid').querySelectorAll('tbody tr').forEach(tr => { const an = !HIEN_HET && AN_MA.has(tr.dataset.ma) && ![...tr.querySelectorAll('input')].some(i => +i.value); tr.classList.toggle('an', an); n += an; });
+  $('btnAn').hidden = !AN_MA.size; $('btnAn').textContent = HIEN_HET ? 'Ẩn mã tồn 0 (7 ngày)' : `Hiện ${n} mã ẩn (tồn 0 suốt 7 ngày)`;
+}
+function rowVal(tr) { const v = {}; tr.querySelectorAll('input').forEach(i => v[i.dataset.f] = i.value); return v; }
+function calc() {
+  let ds = 0, dsOn = 0, sPo = 0, sLp = 0; const dsAm = [], cong = $('ngay').value >= INIT.nhapCongTu; // cong: app tự cộng Nhập vào tồn cuối
+  const sum = {}; F.concat(['tc', 'br']).forEach(f => sum[f] = 0);
+  $('grid').querySelectorAll('tbody tr').forEach(tr => {
+    const v = rowVal(tr), n = f => +v[f] || 0, q = +tr.dataset.q || 1; // Nhập, Gói: số gói × q
+    const coSo = F.some(f => v[f] !== ''), demCuoi = ['chan', 'le', 'tu'].some(f => v[f] !== '');
+    const tc = n('chan') * q + n('le') + n('tu') + (cong ? n('nhap') * q : 0), br = n('tonDau') + n('nhap') * q - tc - n('huy') - n('online');
+    tr.querySelector('.tc').textContent = coSo ? tc : '';
+    const c = tr.querySelector('.br'); c.textContent = coSo ? br : '';
+    const po = POSINFO.coPos ? (POSINFO.sl[tr.dataset.ma] || 0) : null, lp = po === null || !coSo ? null : br + n('online') - po; // Lệch POS = File (bán offline + online) − POS
+    tr.querySelector('.po').textContent = po === null ? '' : po; const l = tr.querySelector('.lp'); l.textContent = lp === null ? '' : lp; l.className = 'lp ' + (lp ? 'neg' : lp === 0 ? 'pos' : '');
+    sPo += po || 0; sLp += lp || 0;
+    const am = coSo && (br < 0 || F.some(f => n(f) < 0)); tr.classList.toggle('am', am); if (am) dsAm.push(tr.querySelector('.tn').textContent);
+    const iTD = tr.querySelector('input[data-f="tonDau"]'), tTr = TRUOC && TRUOC.ngay ? (TRUOC.map[tr.dataset.ma] || 0) : null; // tô cam ô tồn đầu lệch ca trước
+    const lechTD = tTr !== null && TRUOC && TRUOC.ngay && iTD.value !== '' && +iTD.value !== tTr; iTD.classList.toggle('lechTD', lechTD); iTD.title = tTr !== null ? 'Ca trước: ' + tTr : '';
+    tr.classList.toggle('chua', (n('tonDau') + (cong ? 0 : n('nhap') * q)) > 0 && !demCuoi);
+    F.forEach(f => sum[f] += n(f)); sum.tc += coSo ? tc : 0; sum.br += coSo ? br : 0;
+    const gia = (INIT.sp.find(x => x.ma === tr.dataset.ma) || {}).giaCai || 0; if (coSo) ds += br * gia; dsOn += n('online') * gia;
+  });
+  Object.keys(sum).forEach(k => $('sum_' + k).textContent = fmt(sum[k]));
+  $('sum_po').textContent = POSINFO.coPos ? fmt(sPo) : ''; $('sum_lp').textContent = POSINFO.coPos ? fmt(sLp) : '';
+  $('kpiNhap').innerHTML = `<div>Bán ra offline<b>${fmt(sum.br)} cái</b></div><div>DS offline<b>${fmt(ds)} đ</b></div>` +
+    `<div>Bán online<b style="color:#d0338a">${fmt(sum.online)} cái</b></div><div>DS online<b style="color:#d0338a">${fmt(dsOn)} đ</b></div><div>Hủy<b class="neg">${fmt(sum.huy)}</b></div>`;
+  $('amNhap').innerHTML = dsAm.length ? `⚠ ${dsAm.length} SP có số âm (dòng đỏ) — kiểm tra lại: ${dsAm.join(', ')}` : ''; $('amNhap').className = dsAm.length ? 'msg on err' : 'msg';
+}
+async function taiCa(d0) { // d0: phiếu đã tải sẵn lúc mở app (khỏi gọi server thêm 1 lần)
+  ANH = ''; ANH_P = null; $('anh').value = '';
+  const d = d0 || await run('getShift', $('ngay').value, caSel().kt, caSel().ten); LICH_NGAY = d.lich || [];
+  // NV hiển thị: ca đã lưu → người đã làm; chưa lưu → NV được xếp ca (NV đăng nhập: ca chưa qua thì là chính mình)
+  // Quản lý: ca không ai được xếp → chính Quản lý đang đăng nhập (người cover ca trống)
+  const gioNay = new Date(Date.now() + 7 * 3600e3).toISOString().slice(11, 16), daQua = $('ngay').value + caSel().kt <= today() + gioNay;
+  const lam = NGAY_NV && NGAY_NV[caSel().ten];
+  if (lam && lam.length) { // ngày đã qua: chỉ hiện NV đã làm ca này; 2 người cùng ca → "Thy + Trâm"
+    const ghep = lam.join(' + ');
+    $('nv').innerHTML = (lam.length > 1 ? `<option value="${ghep}">${ghep}</option>` : '') + lam.map(t => `<option value="${t}">${t}</option>`).join('');
+    $('nv').value = lam.length > 1 ? ghep : lam[0];
+  } else {
+    $('nv').innerHTML = laQL() ? '<option value="">-- NV --</option>' + conLam().map(n => `<option value="${n.ten}">${n.ten}</option>`).join('') : `<option value="${ME.ten}">${ME.ten}</option>`;
+    const tenNV = d.nv || (laQL() ? (d.nvXep || (INIT.nv.some(n => n.ten === ME.ten) ? ME.ten : '')) : ((daQua && d.nvXep) || ME.ten));
+    if (tenNV && ![...$('nv').options].some(o => o.value === tenNV)) $('nv').add(new Option(tenNV, tenNV));
+    if (tenNV) $('nv').value = laQL() ? tenNV : ME.ten;
+  }
+  $('grid').querySelectorAll('tbody tr').forEach(tr => {
+    const ma = tr.dataset.ma, s = d.saved[ma];
+    tr.classList.remove('ocr');
+    tr.querySelectorAll('input').forEach(i => {
+      const f = i.dataset.f;
+      i.value = s ? s[f] : (f === 'tonDau' && d.tonDau.map[ma] ? d.tonDau.map[ma] : ''); // tồn đầu = tồn cuối ca trước (sai thì NV sửa, app ghi lịch sử)
+    });
+  });
+  $('tonDauInfo').textContent = `Phiếu kiểm mốc ${mocLabel(caSel().kt)}. ` + (d.khungPos ? `POS đối chiếu: ${d.khungPos}. ` : '') + ($('ngay').value >= INIT.nhapCongTu ? 'Gói/Lẻ/Tủ: chỉ đếm hàng cũ (app tự cộng Nhập). ' : '') + (Object.keys(d.saved).length ? 'Mốc này đã có dữ liệu — đang sửa bản đã lưu.' : '');
+  TRUOC = d.tonDau; XN = d.xacNhan; AN_MA = new Set(d.anMa || []); HIEN_HET = false; ANH_TRUOC = d.anhTruoc || ''; ANH_NAY = d.anhNay || '';
+  anHien();
+  POSINFO = { coPos: d.coPos, posTien: d.posTien, posTM: d.posTM || 0, posCK: d.posCK || 0, coTT: !!d.posCoTT, sl: d.posSL || {} }; calc(); veXacNhan(); CA_TRUOC = d.caTruoc; TONG_CHI = d.tongChi; CHI_CA = d.chiCa || []; fillChot(d.chot); $('msgNhap').className = 'msg';
+  // 2 phần việc, mỗi phần 1 chủ. Phần người khác đã lưu: NV chỉ xem
+  KHOA_KT = d.khoaKT || ''; KHOA_CHOT = d.khoaChot || ''; LUC = { kt: d.lucKT || 0, chot: d.lucChot || 0 }; CHU = { kt: d.nvKT || '', chot: d.nvChot || '' }; AI = d.ai || {}; DA_BAO = {};
+  $('btnLuu').disabled = !!KHOA_KT; $('btnDoc').disabled = !!KHOA_KT || !INIT.hasKey; $('btnChot').disabled = !!KHOA_CHOT;
+  $('msgChot').className = 'msg'; veAi();
+}
+function nenAnh(file) {
+  return new Promise(ok => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 2000 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = img.width * k; c.height = img.height * k; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      ok(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function docAnh() {
+  const f = $('anh').files[0]; if (!f) return msg('msgNhap', 'Chưa chọn ảnh.', 'err');
+  const t0 = Date.now(), dem = setInterval(() => msg('msgNhap', `Đang đọc ảnh… ${Math.round((Date.now() - t0) / 1000)} giây`, 'warn'), 1000);
+  msg('msgNhap', 'Đang đọc ảnh…', 'warn'); $('btnDoc').disabled = true;
+  let b64 = '';
+  try {
+    b64 = await nenAnh(f);
+    ANH = '';
+    const r = await run('readImage', b64, 'image/jpeg');
+    clearInterval(dem); $('btnDoc').disabled = false;
+    const map = {}; r.items.forEach(x => map[String(x.ma).trim()] = x);
+    const key = { nhap: 'nhap', chan: 'goi', le: 'le', tu: 'ton_tu', huy: 'huy', online: 'online' }; // phiếu giấy không có tồn đầu → không ghi đè tồn đầu
+    let hit = 0;
+    $('grid').querySelectorAll('tbody tr').forEach(tr => {
+      if (!map[tr.dataset.ma] && !(r.maIn || []).includes(tr.dataset.ma)) return; // mã không có trên phiếu → giữ số đang nhập
+      const x = map[tr.dataset.ma] || {}; if (map[tr.dataset.ma]) hit++; // hàng có trên phiếu: ô trống trên phiếu = trống (xóa số cũ)
+      tr.classList.toggle('ocr', !!map[tr.dataset.ma]); tr.classList.toggle('mo', x.ro === false || !!x.ghi_chu); // AI không chắc → tô vàng
+      tr.querySelectorAll('input').forEach(i => { if (!key[i.dataset.f] || i.readOnly) return; const v = x[key[i.dataset.f]]; i.value = v !== null && v !== undefined && v !== '' ? v : ''; });
+    });
+    const la = r.items.filter(x => !INIT.sp.some(s => s.ma === String(x.ma).trim()) || x.ghi_chu || x.ro === false);
+    calc(); anHien(); // dòng AI vừa điền số → hiện lại
+    msg('msgNhap', `(${Math.round((Date.now() - t0) / 1000)} giây, AI ${r.giay} giây · ${r.model} · suy nghĩ ${r.muc}${r.lan > 1 ? ' · ' + r.lan + ' lần gọi' : ''}) Đọc được ${hit} mã SP (viền xanh). Dòng vàng = AI đọc không rõ, dòng đỏ = số âm — kiểm tra lại trước khi lưu.` +
+      (la.length ? ' Cần xem lại: ' + la.map(x => `${x.ma}${x.ghi_chu ? ' (' + x.ghi_chu + ')' : ''}`).join('; ') : ''), la.length ? 'warn' : 'ok');
+  } catch (e) { clearInterval(dem); $('btnDoc').disabled = false; msg('msgNhap', e.message, 'err'); }
+}
+const linkAnh = () => (ANH_TRUOC ? `<a href="${ANH_TRUOC}" target="_blank">📷 Ảnh phiếu ca trước</a> ` : '') +
+  (ANH_NAY ? ` · <a href="${ANH_NAY}" target="_blank">📷 Ảnh phiếu ca này</a>` : '');
+function veXacNhan() { // tồn đầu tự lấy tồn cuối ca trước; NV ca sau đếm lại, lệch thì sửa thẳng ô Tồn đầu → app ghi lịch sử người điều chỉnh
+  const c = $('xnCard');
+  if (!TRUOC || !TRUOC.ngay) { c.className = 'card xn ok'; c.innerHTML = '<span class="small">Chưa có ca trước — nhập tồn đầu tay.</span>'; return; }
+  const lech = $('grid').querySelectorAll('input.lechTD').length;
+  c.className = 'card xn ' + (lech ? 'sai' : 'ok');
+  c.innerHTML = `<b>Tồn đầu = tồn cuối ca trước</b> — mốc ${TRUOC.ca} ${dm(TRUOC.ngay)} · ${Object.keys(TRUOC.map).length} SP, ${fmt(Object.values(TRUOC.map).reduce((a, b) => a + b, 0))} cái ${linkAnh()}<br>` +
+    (lech ? `<b class="neg">${lech} SP điều chỉnh</b> (ô cam) — khi Lưu, app ghi lại người điều chỉnh.` : '<span class="small">Đếm lại hàng đầu ca: lệch thì sửa thẳng ô <b>Tồn đầu</b>.</span>') +
+    (XN && XN.soLech ? ` <span class="small">· Lần lưu trước: ${XN.nv} điều chỉnh ${XN.soLech} SP</span>` : '');
+}
+async function luu() {
+  if (!$('nv').value) return msg('msgNhap', 'Chọn nhân viên.', 'err');
+  const rows = [];
+  $('grid').querySelectorAll('tbody tr').forEach(tr => {
+    const v = rowVal(tr);
+    if (F.some(f => v[f] !== '')) rows.push(Object.assign({ ma: tr.dataset.ma }, v));
+  });
+  // Lưu nhầm mốc: NV được xếp ca kết thúc ở mốc khác mốc đang chọn (vd Ca 1b 5h–12h30 nhưng lưu mốc 09:00 → POS 9h–12h30 bị dồn sang ca sau)
+  const ten = nvLuu('kt').toLowerCase(), moc = [...new Set((LICH_NGAY || []).filter(x => x.nv.toLowerCase() === ten).map(x => (INIT.ca.find(c => c.ten === x.ca) || {}).kt).filter(Boolean))];
+  if (moc.length && !moc.includes(caSel().kt) && !confirm(`${nvLuu('kt')} được xếp ca kết thúc lúc ${moc.join(', ')}, nhưng đang lưu phiếu mốc ${caSel().kt}.\nLưu nhầm mốc làm số POS và doanh thu bị dồn sai ca. Vẫn lưu mốc ${caSel().kt}?`)) return;
+  const am = $('grid').querySelectorAll('tr.am').length;
+  if (am && !confirm(`${am} SP có số âm (dòng đỏ). Kiểm tra lại — vẫn lưu?`)) return;
+  const chua = $('grid').querySelectorAll('tr.chua').length;
+  if (chua && !confirm(`${chua} SP có tồn đầu/nhập nhưng chưa đếm tồn cuối (dòng vàng) — sẽ tính tồn cuối = 0. Vẫn lưu?`)) return;
+  try {
+    if (ANH_P) { await ANH_P; ANH_P = null; }  // chờ ảnh lưu Drive xong (nếu chưa) để gắn link vào phiếu
+    const r = await run('saveShift', { ngay: $('ngay').value, ca: caSel().kt, tenCa: caSel().ten, nv: nvLuu('kt'), anh: ANH, rows, luc0: LUC.kt });
+    LUC.kt = r.luc; CHU.kt = r.nv; veAi();
+    toast(); msg('msgNhap', (r.capNhat ? `Đã cập nhật tồn đầu ca sau (${dm(r.capNhat.ngay)} mốc ${r.capNhat.moc}, ${r.capNhat.n} SP) theo tồn cuối mới. ` : '') + `Đã lưu ${r.n} SP — mốc ${caSel().kt} (${caSel().ten}) ngày ${$('ngay').value}.`, 'ok');
+    XN = r.xacNhan; if (ANH) ANH_NAY = ANH; veXacNhan(); // cập nhật số SP lệch (server trả luôn, khỏi gọi lại)
+  } catch (e) { loiLuu(e, 'msgNhap'); }
+}
+
+/* ---------- AI ĐANG NHẬP / ĐÃ LƯU (2 NV cùng ca chia việc) ---------- */
+let DA_BAO = {}; // lần cuối báo "tôi đang nhập" từng phần
+const gioPhut = t => new Date(t).toTimeString().slice(0, 5);
+function veAi() { // mỗi mục hiện: ai đã lưu lúc mấy giờ + ai khác đang nhập
+  [['kt', 'aiKT', KHOA_KT, 'Kiểm tồn'], ['chot', 'aiChot', KHOA_CHOT, 'Chốt tiền']].forEach(([p, id, khoa, ten]) => {
+    const a = AI[p], t = [];
+    if (CHU[p]) t.push(`💾 ${ten}: <b>${CHU[p]}</b> đã lưu${LUC[p] ? ' lúc ' + gioPhut(LUC[p]) : ''}`);
+    if (a) t.push(`✏ <b>${a.ten}</b> đang nhập ${ten.toLowerCase()} (${Math.max(0, Math.round((Date.now() - a.luc) / 6e4))} phút trước) — tránh nhập trùng`);
+    if (khoa) t.push(`👁 Bạn chỉ xem phần này — sai số thì báo ${khoa} hoặc Quản lý.`);
+    $(id).hidden = !t.length; $(id).className = 'msg on ' + (a || khoa ? 'warn' : 'ok'); $(id).innerHTML = t.join('<br>');
+  });
+}
+async function baoNhap(p) { // p: 'kt' | 'chot' | '' (chỉ hỏi ai đang nhập)
+  if (!caSel() || (p && (p === 'kt' ? KHOA_KT : KHOA_CHOT))) return;
+  if (p && Date.now() - (DA_BAO[p] || 0) < 6e4) return; // báo tối đa 1 lần/phút
+  if (p) DA_BAO[p] = Date.now();
+  try { AI = await run('baoNhap', $('ngay').value, caSel().kt, p); veAi(); } catch (e) {}
+}
+function loiLuu(e, id) { // bị người khác lưu trước → hỏi tải lại số mới
+  msg(id, e.message, 'err');
+  if (/vừa được/.test(e.message) && confirm(e.message + '\n\nTải lại phiếu ngay? (số bạn đang nhập chưa lưu sẽ mất — chụp/ghi lại trước nếu cần)')) taiCa();
+}
+
+/* ---------- CHỐT TIỀN ---------- */
+function drawTo() {
+  // Mỗi nhóm 2 cột: Số tờ | Số tiền. Còn lại = Tổng ca − Tiền thối = tiền bán
+  const nhom = ['Tổng ca', 'Tiền thối', 'Còn lại (tiền bán)', 'Tiền thối phụ'];
+  $('tblTo').innerHTML = '<thead><tr><th rowspan="2" class="mg">Mệnh giá</th>' + nhom.map((x, i) => `<th colspan="2" class="k${i + 1}">${x}</th>`).join('') + '</tr><tr>' + nhom.map((_, i) => `<th class="k${i + 1}"><small>Số tờ</small></th><th class="k${i + 1}"><small>Số tiền</small></th>`).join('') + '</tr></thead><tbody>' +
+    INIT.menhGia.map(g => `<tr><td class="mg">${g}</td><td class="k1"><input type="number" data-g="${g}"></td><td class="k1 tien" id="tg_${g}"></td><td class="k2"><input type="number" data-t="${g}"></td><td class="k2 tien" id="tt_${g}"></td><td class="k3" id="cb_${g}"></td><td class="k3 tien" id="tb_${g}"></td><td class="k4"><input type="number" data-p="${g}"></td><td class="k4 tien" id="tp_${g}"></td></tr>`).join('') +
+    '</tbody><tfoot><tr class="tongTo"><td class="mg">Tổng</td><td class="k1" id="toG"></td><td class="k1 tien" id="tienMat"></td><td class="k2" id="toT"></td><td class="k2 tien" id="tienThoiT"></td><td class="k3" id="toCL"></td><td class="k3 tien" id="tienBan"></td><td class="k4" id="toP"></td><td class="k4 tien" id="thoiPhu"></td></tr></tfoot>';
+}
+let CA_TRUOC = null;
+function veCaTruoc() { // tiền ca trước đã chốt → ca này đối chiếu tiền thối nhận được
+  const p = CA_TRUOC;
+  if (!p) { $('caTruoc').innerHTML = '<span class="small">Chưa có ca trước đã chốt tiền để đối chiếu.</span>'; return; }
+  const to = INIT.menhGia.filter(g => p.soToThoi[g]).map(g => `${g}k × ${p.soToThoi[g]}`).join(' · ');
+  $('caTruoc').innerHTML = `<b>Đối chiếu ca trước</b> — mốc ${p.moc}${p.tenCa ? ' · ' + p.tenCa : ''} · ngày ${dm(p.ngay)} · NV ${p.nv || '?'}<br>` +
+    (p.tienMat !== undefined ? `Tổng ca: <b>${fmt(p.tienMat)}</b> · ` : '') + `Để lại thối: <b class="${p.tienThoi < INIT.thoiMin ? 'neg' : ''}">${fmt(p.tienThoi)}</b>` + (p.tienMat !== undefined ? ` · Tiền bán: <b>${fmt(p.tienMat - p.tienThoi)}</b>` : '') +
+    `<br><span class="small">Tiền thối nhận: ${to || '(không ghi số tờ)'} — đếm lại khi nhận ca, sai thì báo quản lý.</span>`;
+}
+function readChot() {
+  const doc = a => { const m = {}; $('tblTo').querySelectorAll(`input[data-${a}]`).forEach(i => { if (i.value !== '') m[i.dataset[a]] = +i.value; }); return m; };
+  const v = id => +$(id).value || 0;
+  return { soTo: doc('g'), soToThoi: doc('t'), soToThoiPhu: doc('p'), ck: v('ck'), app: v('app'),
+           tienQuy: v('tienQuy'), chi: v('chi'), boSung: v('boSung'), ghiChu: $('ghiChu').value };
+}
+async function calcChot(tienFile) {
+  const c = readChot();
+  const sumG = m => INIT.menhGia.reduce((s, g) => s + g * (m[g] || 0), 0), thieuTo = [];
+  INIT.menhGia.forEach(g => { const cb = (c.soTo[g] || 0) - (c.soToThoi[g] || 0), co = c.soTo[g] !== undefined || c.soToThoi[g] !== undefined;
+    $('cb_' + g).textContent = co ? cb : ''; $('cb_' + g).classList.toggle('neg', cb < 0); $('tb_' + g).textContent = co && cb ? fmt(cb * g) : ''; if (cb < 0) thieuTo.push(g + 'k');
+    [['tg_', c.soTo], ['tt_', c.soToThoi], ['tp_', c.soToThoiPhu]].forEach(([id, m]) => $(id + g).textContent = m[g] ? fmt(m[g] * g) : ''); }); // cột Số tiền = số tờ × mệnh giá
+  const dem = m => INIT.menhGia.reduce((s, g) => s + (m[g] || 0), 0); // tổng số tờ
+  $('toG').textContent = dem(c.soTo) || ''; $('toT').textContent = dem(c.soToThoi) || ''; $('toCL').textContent = dem(c.soTo) - dem(c.soToThoi) || ''; $('toP').textContent = dem(c.soToThoiPhu) || '';
+  const tm = sumG(c.soTo), th = sumG(c.soToThoi), ban = tm - th;
+  $('tienMat').textContent = fmt(tm); $('tienThoiT').textContent = fmt(th); $('tienThoiT').classList.toggle('neg', th < INIT.thoiMin); $('tienThoiT').classList.toggle('pos', th >= INIT.thoiMin);
+  $('tienBan').textContent = fmt(ban); $('thoiPhu').textContent = fmt(sumG(c.soToThoiPhu));
+  const dt = ban + c.ck, conLai = c.tienQuy - c.chi;
+  const file = banFileCa(); // doanh số bán ra theo phiếu kiểm tồn của ca
+  // 4 cột: [TM bán, TM bán + CK, Tồn kho] [DT KiotViet, Lệch POS] [Doanh thu file, Lệch file] [Tiền quỹ, Quỹ sau bổ sung]
+  const cot = [[['Tiền mặt bán', ban], ['Tiền mặt bán + CK', dt, 'dam'], ['Tồn kho', typeof tienFile === 'number' ? tienFile : 0]],
+    POSINFO.coTT ? [['KiotViet tiền mặt', POSINFO.posTM / 1000], ['Lệch TM (đếm − KV)', ban - POSINFO.posTM / 1000, Math.round(ban - POSINFO.posTM / 1000) ? 'bad' : ''], // đối chiếu thẳng theo hóa đơn KiotViet
+      ['KiotViet CK', POSINFO.posCK / 1000]]
+    : [['Doanh thu KiotViet', c.app], ['Lệch POS', dt - c.app, Math.round(dt - c.app) ? 'bad' : '']],
+    [['Doanh thu file', file], ['Lệch file', dt - file, Math.round(dt - file) ? 'bad' : '']],
+    [['Quỹ đầu ca', c.tienQuy], ['Quỹ cuối ca', conLai + c.boSung, conLai + c.boSung < INIT.quyMin ? 'alert' : '']]];
+  $('kpiChot').innerHTML = cot.map(o => '<div class="cot">' + o.map(([a, b, x]) => `<div class="${x || ''}">${a}<b class="${/Lệch|±/.test(a) ? cls(b) : ''}">${fmt(b)}</b></div>`).join('') + '</div>').join('');
+  const warn = [];
+  if (th < INIT.thoiMin) warn.push(`Tiền thối để lại ${fmt(th)}k chưa đủ ${fmt(INIT.thoiMin)}k.`);
+  if (thieuTo.length) warn.push(`Số tờ thối nhiều hơn tổng ca ở mệnh giá: ${thieuTo.join(', ')}.`);
+  if (POSINFO.coTT && Math.abs(ban - POSINFO.posTM / 1000) >= 20) warn.push(`Tiền mặt đếm được (${fmt(ban)}k) lệch KiotViet (${fmt(POSINFO.posTM / 1000)}k) ${fmt(ban - POSINFO.posTM / 1000)}k.`);
+  if (!POSINFO.coPos) warn.push('Chưa có dữ liệu POS của mốc này — Quản lý up file KiotViet để đối chiếu tự động.');
+  if (CA_TRUOC && CA_TRUOC.quyCuoi != null && Math.round(c.tienQuy - CA_TRUOC.quyCuoi)) warn.push(`Quỹ đầu ca (${fmt(c.tienQuy)}k) khác quỹ cuối ca trước (${fmt(CA_TRUOC.quyCuoi)}k) ${fmt(c.tienQuy - CA_TRUOC.quyCuoi)}k — ghi lý do vào Ghi chú.`);
+  if (CHI_CA.length) warn.push('Chi trong ca: ' + CHI_CA.map(x => `${x.muc} ${fmt(x.tien)}k${x.ngay !== $('ngay').value ? ' (' + dm(x.ngay) + ')' : ''}`).join(', ') + '.');
+  if (conLai < INIT.quyMin) warn.push(`Quỹ còn lại ${fmt(conLai)}k dưới ${INIT.quyMin}k — cần bổ sung quỹ.` + (conLai + c.boSung >= INIT.quyMin ? ' (Đã bổ sung đủ.)' : ''));
+  $('warnChot').innerHTML = warn.map(w => `<div>⚠ ${w}</div>`).join(''); $('warnChot').className = warn.length ? 'msg on warn' : 'msg';
+}
+function fillChot(c) {
+  $('tblTo').querySelectorAll('input').forEach(i => { const m = c ? (i.dataset.g ? c.soTo : i.dataset.t ? c.soToThoi || {} : c.soToThoiPhu) : null, k = i.dataset.g || i.dataset.t || i.dataset.p;
+    i.value = m && m[k] !== undefined ? m[k] : ''; });
+  veCaTruoc();
+  ['ck', 'app', 'tienQuy', 'boSung', 'ghiChu'].forEach(id => $(id).value = c && c[id] ? c[id] : '');
+  // Quỹ: đầu ca = quỹ cuối lần chốt trước (tự điền, sửa được nếu đếm thực tế khác); chi = các khoản chi nhập sau lần chốt trước
+  $('chi').value = c ? (+c.chi || 0) : CHI_CA.reduce((s, x) => s + x.tien, 0);
+  if (!c && CA_TRUOC && CA_TRUOC.quyCuoi != null) $('tienQuy').value = CA_TRUOC.quyCuoi;
+  if (POSINFO.coPos) $('app').value = Math.round(POSINFO.posTien / 1000); $('app').readOnly = POSINFO.coPos; // có POS → Doanh thu KiotViet tự điền, khỏi nhập tay
+  calcChot(tienFileCa());
+}
+function tienFileCa() { // Tồn kho: Σ tồn cuối × giá cái của ca đang mở (hàng còn lại sau khi trừ bán ra), nghìn đồng
+  let s = 0; $('grid').querySelectorAll('tbody tr').forEach(tr => {
+    const sp = INIT.sp.find(x => x.ma === tr.dataset.ma), tc = +tr.querySelector('.tc').textContent || 0; s += tc * sp.giaCai;
+  }); return s / 1000;
+}
+function banFileCa() { // Σ bán ra × giá cái của ca đang mở (nghìn đồng)
+  let s = 0; $('grid').querySelectorAll('tbody tr').forEach(tr => { const sp = INIT.sp.find(x => x.ma === tr.dataset.ma); s += (+tr.querySelector('.br').textContent || 0) * sp.giaCai; });
+  return s / 1000;
+}
+async function luuChot() {
+  try {
+    const r = await run('saveChot', Object.assign({ ngay: $('ngay').value, ca: caSel().kt, tenCa: caSel().ten, nv: nvLuu('chot'), luc0: LUC.chot }, readChot()));
+    LUC.chot = r.luc; CHU.chot = r.nv; veAi(); taiTongQuan();
+    toast(); msg('msgChot', `Đã lưu chốt tiền mốc ${caSel().kt} (${caSel().ten}) ngày ${$('ngay').value}. Tổng ca ${fmt(r.tienMat)}k · Thối ${fmt(r.tienThoi)}k · Tiền bán ${fmt(r.tienBan)}k. Chi tiết từng mệnh giá đã lưu ở tab TIENCA.`, r.tienThoi < INIT.thoiMin ? 'warn' : 'ok');
+  } catch (e) { loiLuu(e, 'msgChot'); }
+}
+
+/* ---------- TỔNG QUAN CHỐT TIỀN ---------- */
+async function taiTongQuan() {
+  try {
+    const n = $('tqNgay').value, ds = await run('getTongQuanChot', n);
+    $('tqGhiChu').textContent = laQL() ? 'Quản lý xem lại số NV đã nhập, bấm ✓ Đúng / ✗ Sai, hoặc ✏ Sửa để mở phiếu ra chỉnh.' : 'Các lần chốt tiền trong ngày và trạng thái Quản lý duyệt (chỉ xem).';
+    const tt = x => x.duyet === 'Đúng' ? `<span class="pos">✓ ${x.nguoiDuyet}</span>` : x.duyet === 'Sai' ? `<span class="neg" title="${x.gcDuyet}">✗ ${x.nguoiDuyet}${x.gcDuyet ? ' · ' + x.gcDuyet : ''}</span>` : '<span class="small">chờ duyệt</span>';
+    if (!ds.length) { $('tqTbl').innerHTML = `<tr><td class="small">Ngày ${dm(n)} chưa có lần chốt tiền nào.</td></tr>`; return; }
+    // Cột = mốc ca + NV; hàng = các số liệu tiền
+    const hang = [['Tổng ca', x => fmt(x.tong)], ['Tiền thối', x => `<span class="${x.thoi < INIT.thoiMin ? 'neg' : ''}">${fmt(x.thoi)}</span>`], ['TM bán', x => fmt(x.ban)], ['Chuyển khoản', x => fmt(x.ck)], ['Tiền online', x => fmt(x.onl)],
+      ['TM bán + CK', x => `<b>${fmt(x.ban + x.ck)}</b>`], ['DT KiotViet', x => fmt(x.kv)], ['Lệch POS', x => `<span class="${cls(x.ban + x.ck - x.kv)}">${fmt(x.ban + x.ck - x.kv)}</span>`],
+      ['Doanh thu file', x => fmt(x.file)], ['Lệch file', x => `<span class="${cls(x.ban + x.ck - x.file)}">${fmt(x.ban + x.ck - x.file)}</span>`], ['Chi', x => fmt(x.chi)], ['Duyệt', tt]];
+    if (laQL()) hang.push(['', x => `<button class="b xnD" style="padding:3px 7px" onclick="duyet('${x.moc}','Đúng')">✓</button> <button class="b xnS" style="padding:3px 7px" onclick="duyet('${x.moc}','Sai')">✗</button> <button class="b g" style="padding:3px 7px" onclick="suaChot('${x.moc}','${x.tenCa}')">✏</button>`]);
+    $('tqTbl').innerHTML = '<thead><tr><th></th>' + ds.map(x => `<th>${x.moc}${x.tenCa ? ' · ' + x.tenCa : ''}<br>${tagNV(x.nv)}</th>`).join('') + '</tr></thead><tbody>' +
+      hang.map(([lb, f]) => `<tr><td><b>${lb}</b></td>` + ds.map(x => `<td>${f(x)}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  } catch (e) { msg('msgTq', e.message, 'err'); }
+}
+async function duyet(moc, kq) {
+  const gc = kq === 'Sai' ? (prompt('Ghi chú lý do Sai (vd: thiếu 50k):') || '') : '';
+  try { await run('duyetChot', $('tqNgay').value, moc, kq, gc); toast(); msg('msgTq', `Đã duyệt ${kq} mốc ${moc}.`, kq === 'Đúng' ? 'ok' : 'warn'); taiTongQuan(); }
+  catch (e) { msg('msgTq', e.message, 'err'); }
+}
+function suaChot(moc, tenCa) { // QL mở phiếu chốt tiền của mốc đó lên form để chỉnh
+  const c = INIT.ca.find(x => x.ten === tenCa && x.kt === moc) || INIT.ca.find(x => x.kt === moc);
+  $('ngay').value = $('tqNgay').value;
+  locNgay().catch(() => {}).then(() => { if (c) $('ca').value = c.ten; return taiCa(); }).then(() => { scrollTo(0, 0); msg('msgChot', `Đang sửa chốt tiền mốc ${moc} ngày ${dm($('ngay').value)} — sửa xong bấm Lưu, rồi duyệt lại.`, 'warn'); });
+}
+
+/* ---------- POS (trong Kiểm tồn ca) ---------- */
+const caTheoGio = hhmm => { const m = MOC(); return m.find(x => x >= hhmm) || m[m.length - 1]; };
+function parseTime(v) { // trả [yyyy-MM-dd, HH:mm]
+  if (v instanceof Date) { const d = new Date(v.getTime() - v.getTimezoneOffset() * 6e4).toISOString(); return [d.slice(0, 10), d.slice(11, 16)]; }
+  if (typeof v === 'number') { const d = XLSX.SSF.parse_date_code(v); return [`${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`, `${String(d.H).padStart(2, '0')}:${String(d.M).padStart(2, '0')}`]; }
+  const m = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\D+(\d{1,2}):(\d{2})/);
+  return m ? [`${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`, `${m[4].padStart(2, '0')}:${m[5]}`] : null;
+}
+const napXlsx = () => window.XLSX ? Promise.resolve() : new Promise((ok, no) => { // chỉ tải thư viện đọc Excel khi cần (app mở nhanh hơn)
+  const sc = document.createElement('script'); sc.src = 'https:\/\/cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; // viết \/\/ vì Apps Script cắt nhầm chuỗi có 2 dấu gạch chéo liền nhau
+  sc.onload = ok; sc.onerror = () => no(new Error('Không tải được thư viện đọc Excel — kiểm tra mạng.')); document.head.appendChild(sc); });
+/** Chọn file POS → đọc → gộp theo NGÀY + MỐC theo thời gian trên từng hóa đơn (file up hôm sau vẫn vào đúng ngày cũ) → lưu luôn. */
+async function docPos(e) {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    msg('msgNhap', 'Đang đọc file POS…', 'warn'); await napXlsx();
+    const wb = XLSX.read(await f.arrayBuffer()) /* đọc ngày giờ dạng số → parse_date_code: chính xác đến phút (cellDates làm lệch 1 phút) */;
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+    const hi = rows.findIndex(r => r.some(c => /mã hàng/i.test(c)));
+    if (hi < 0) throw new Error('Không thấy cột "Mã hàng" trong file POS.');
+    const hd = rows[hi].map(x => String(x).trim()), pick = re => hd.findIndex(h => re.test(h));
+    const cm = pick(/^mã hàng$/i), cs = pick(/^số lượng$/i), ct = pick(/^thời gian/i), ctt = pick(/^thành tiền$/i);
+    const chd = pick(/^mã hóa đơn$/i), ctm = pick(/^tiền mặt$/i), cck = pick(/^chuyển khoản$/i), ctt2 = pick(/^trạng thái$/i);
+    if (cs < 0 || ct < 0 || chd < 0) throw new Error('File POS thiếu cột ' + (cs < 0 ? '"Số lượng"' : ct < 0 ? '"Thời gian"' : '"Mã hóa đơn"') + ' — xuất file "Chi tiết hóa đơn" từ KiotViet.');
+    const so = v => +String(v).replace(/[^\d.-]/g, '') || 0, list = [], la = new Set(), daCo = new Set(), hds = {}; let bo = 0, huy = 0;
+    rows.slice(hi + 1).forEach(r => {
+      const ma = String(r[cm]).trim(), t = parseTime(r[ct]), sl = +r[cs], hd = String(r[chd]).trim();
+      if (!ma || !t || !sl || !hd) { bo++; return; }
+      if (ctt2 >= 0 && r[ctt2] && !/hoàn thành/i.test(r[ctt2])) { huy++; return; } // bỏ hóa đơn hủy / chưa hoàn thành
+      if (!INIT.sp.some(s => s.ma === ma)) la.add(ma);
+      const dau = !daCo.has(hd); daCo.add(hd); // tiền mặt / CK là của cả hóa đơn → chỉ ghi ở dòng đầu
+      list.push({ ngay: t[0], ca: caTheoGio(t[1]), gio: t[1], ma, sl, hd, tien: ctt >= 0 ? so(r[ctt]) : 0, tm: dau && ctm >= 0 ? so(r[ctm]) : 0, ck: dau && cck >= 0 ? so(r[cck]) : 0 });
+      const h = hds[hd] = hds[hd] || { t: t[0] + ' ' + t[1], tien: 0, tm: 0, ck: 0 }; h.tien += list[list.length - 1].tien; h.tm += list[list.length - 1].tm; h.ck += list[list.length - 1].ck;
+    });
+    if (!list.length) throw new Error('File POS không có dòng hợp lệ.');
+    const r = await run('savePos', list); e.target.value = ''; await taiCa();
+    const H = Object.values(hds), ts = H.map(h => h.t).sort(), sum = k => fmt(H.reduce((s, h) => s + h[k], 0) / 1000);
+    const thieu = r.phu.filter(x => x.trong.length).map(x => `${dm(x.ngay)}: ${x.trong.join(', ')}`);
+    toast(); msg('msgNhap', `Đã lưu POS: file ${dm(ts[0].slice(0, 10))} ${ts[0].slice(11)} → ${dm(ts[ts.length - 1].slice(0, 10))} ${ts[ts.length - 1].slice(11)} · ${H.length} hóa đơn · ${sum('tien')}k (TM ${sum('tm')}k · CK ${sum('ck')}k).` +
+      ' Đã có POS: ' + r.phu.map(x => `${dm(x.ngay)} ${x.dau}–${x.cuoi} = ${fmt(x.tien / 1000)}k`).join('; ') + '.' +
+      (thieu.length ? ` ⚠ CHƯA CÓ POS khoảng: ${thieu.join(' · ')} — up thêm file khoảng giờ này (hoặc file cả ngày).` : '') +
+      (huy ? ` Bỏ ${huy} dòng hóa đơn hủy/chưa hoàn thành.` : '') + (bo ? ` Bỏ qua ${bo} dòng thiếu dữ liệu.` : '') + (la.size ? ` Mã không có trong DM_SP: ${[...la].join(', ')}.` : ''), thieu.length || la.size ? 'warn' : 'ok');
+  } catch (er) { msg('msgNhap', er.message || er, 'err'); }
+}
+
+/* ---------- BÁO CÁO ---------- */
+async function baoCao() {
+  try { await baoCao_(); } catch (e) { msg('msgBC', 'Lỗi báo cáo: ' + (e.message || e), 'err'); }
+}
+async function baoCao_() {
+  msg('msgBC', 'Đang tải…', 'warn');
+  const d = await run('getReport', $('thang').value); $('msgBC').className = 'msg';
+  ['kpiBC', 'tblBC', 'tblBC2', 'tblBC3'].forEach(id => $(id).innerHTML = ''); $('h2BC').textContent = $('h3BC').textContent = '';
+  const canhBao = [];
+  const pos = {}; d.pos.forEach(r => pos[r[0] + '|' + r[1] + '|' + String(r[2])] = +r[3]);
+  let kt = d.kt.map(r => ({ ngay: r[0], ca: r[1], nv: r[2], ma: String(r[3]), ten: r[4], huy: +r[10], online: +r[11], tonCuoi: +r[12], banRa: +r[13], gia: +r[14], ds: +r[15], pos: pos[r[0] + '|' + r[1] + '|' + String(r[3])] }));
+  const ten = {}; INIT.sp.forEach(s => ten[s.ma] = s.ten); kt.forEach(r => ten[r.ma] = ten[r.ma] || r.ten);
+  const posTien = {}; d.pos.forEach(r => posTien[r[0] + '|' + r[1]] = (posTien[r[0] + '|' + r[1]] || 0) + (+r[4] || 0) / 1000);
+  const chot = {}; d.chot.forEach(r => {
+    chot[r[0] + '|' + r[1]] = { dt: (+r[4]) + (+r[6]) - (+r[5]), thoi: +r[5] || 0, app: +r[7], thoiPhu: +r[13] || 0, quy: (+r[14] || 0) - (+r[15] || 0) + (+r[17] || 0), chi: +r[15] || 0, pos: posTien[r[0] + '|' + r[1]] }; });
+  const caList = MOC();
+  const xnMap = {}; (d.xn || []).forEach(r => xnMap[r[0] + '|' + r[1]] = r);
+  window.xnTxt = (n, m) => { const r = xnMap[n + '|' + m]; if (!r) return '<span class="small">—</span>';
+    return r[5] === 'Đúng' ? `<span class="pos">✓ ${r[4]}</span>` : `<span class="neg" title="${r[8] || ''}">✗ ${r[4]}${r[7] !== '' ? ' · ' + r[7] + ' SP lệch' : ''}</span>`; };
+  const cu = kt.filter(r => !caList.includes(r.ca)); // phiếu lưu theo kiểu ca cũ (vd "Ca 1"), không khớp mốc giờ hiện tại
+  if (cu.length) { canhBao.push(`Bỏ qua ${cu.length} dòng kiểm tồn ghi theo ca cũ (${[...new Set(cu.map(r => r.ngay + ' ' + r.ca))].slice(0, 5).join(', ')}…) — dữ liệu thử của bản trước, nên xóa trên Sheet.`); kt = kt.filter(r => caList.includes(r.ca)); }
+  const ngayCo = [...new Set(kt.map(r => r.ngay))].sort();
+  if (!kt.length) canhBao.push(`Tháng ${$('thang').value} chưa có phiếu kiểm tồn nào.`);
+  $('h2BC').textContent = ''; $('tblBC2').innerHTML = '';
+  if ($('kieu').value === 'ngay') {
+    const ng = $('ngayBC').value, rs = kt.filter(r => r.ngay === ng);
+    if (kt.length && !rs.length) canhBao.push(`Ngày ${ng} chưa có phiếu kiểm tồn. Các ngày có dữ liệu trong tháng: ${ngayCo.join(', ')}.`);
+    const by = {}; rs.forEach(r => (by[r.ma] = by[r.ma] || {})[r.ca] = r);
+    kpis(rs);
+    const nvMoc = {}; caList.forEach(c => { const r = rs.find(x => x.ca === c); if (r) nvMoc[c] = r.nv; }); // NV làm từng mốc
+    const nenMoc = c => nvMoc[c] ? `background:${mauNV(nvMoc[c])[0]}` : '';
+    $('tblBC').innerHTML = '<thead><tr><th>Sản phẩm</th>' + caList.map(c => `<th style="${nenMoc(c)}">${mocLabel(c)}${nvMoc[c] ? '<br>' + tagNV(nvMoc[c]) : ''}<br><small>bán / lệch POS</small></th>`).join('') +
+      '<th class="cBan">Bán ngày</th><th class="cHuy">Hủy</th><th class="cTon">Tồn cuối</th><th>Doanh số</th></tr></thead><tbody>' +
+      Object.keys(by).map(ma => { const x = by[ma], vs = Object.values(x), last = caList.filter(c => x[c]).pop();
+        return `<tr>${spCell(ten[ma], ma)}` +
+          caList.map(c => x[c] ? `<td style="${nenMoc(c)}"><b>${x[c].banRa}</b> / <span class="${cls(ch(x[c]))}">${x[c].pos === undefined ? '–' : ch(x[c])}</span></td>` : `<td style="${nenMoc(c)}"></td>`).join('') +
+          `<td class="cBan">${sum(vs, 'banRa')}</td><td class="cHuy">${sum(vs, 'huy') || ''}</td><td class="cTon">${last ? x[last].tonCuoi : ''}</td><td>${fmt(sum(vs, 'ds'))}</td></tr>`; }).join('') + '</tbody>';
+    $('h2BC').textContent = 'Tổng theo mốc/ca';
+    const cols = caList.map(c => ({ c, x: rs.filter(r => r.ca === c), k: chot[ng + '|' + c] })).filter(o => o.x.length || o.k);
+    const fk = (o, f) => o.k ? f(o.k, sum(o.x, 'ds') / 1000) : '<span class="small">chưa chốt</span>';
+    const hangMoc = [['SL bán', o => sum(o.x, 'banRa'), 'cBan'], ['Hủy', o => sum(o.x, 'huy') || '', 'cHuy'], ['Lệch POS (cái)', o => `<span class="${cls(posCh(o.x))}">${posCh(o.x)}</span>`],
+      ['XN tồn đầu', o => xnTxt(ng, o.c)], ['Tồn kho (k)', o => fmt(o.x.reduce((s, r) => s + r.tonCuoi * r.gia, 0) / 1000), 'cTon'],
+      ['TM bán + CK (k)', o => fk(o, k => `<b>${fmt(k.dt)}</b>`)], ['Doanh thu file (k)', o => fmt(sum(o.x, 'ds') / 1000)], ['Lệch file', o => fk(o, (k, f) => `<span class="${cls(k.dt - f)}">${fmt(k.dt - f)}</span>`)],
+      ['Lệch POS', o => fk(o, k => `<span class="${cls(k.dt - k.app)}">${fmt(k.dt - k.app)}</span>`)],
+      ['Tiền thối', o => fk(o, k => `<span class="${k.thoi < INIT.thoiMin ? 'neg' : ''}">${fmt(k.thoi)}</span>`)], ['Tiền thối phụ', o => fk(o, k => fmt(k.thoiPhu))],
+      ['Quỹ còn lại', o => fk(o, k => `<span class="${k.quy < INIT.quyMin ? 'neg' : ''}">${fmt(k.quy)}</span>`)], ['Chi', o => fk(o, k => fmt(k.chi))]];
+    $('tblBC2').innerHTML = !cols.length ? '' : '<thead><tr><th></th>' + cols.map(o => { const nv = o.x[0] ? o.x[0].nv : ''; return `<th style="${nv ? 'background:' + mauNV(nv)[0] : ''}">${mocLabel(o.c)}${nv ? '<br>' + tagNV(nv) : ''}</th>`; }).join('') + '</tr></thead><tbody>' +
+      hangMoc.map(([lb, f, kl]) => `<tr><td><b>${lb}</b></td>` + cols.map(o => `<td class="${kl || ''}">${f(o)}</td>`).join('') + '</tr>').join('') + '</tbody>';
+    onlineTbl(rs, caList);
+  } else {
+    kpis(kt);
+    const by = {}; kt.forEach(r => (by[r.ma] = by[r.ma] || []).push(r));
+    $('tblBC').innerHTML = '<thead><tr><th>Sản phẩm</th><th class="cBan">Bán ra</th><th class="cHuy">Hủy</th><th class="cOnl">Online</th><th>POS±</th><th>Doanh số</th></tr></thead><tbody>' +
+      Object.keys(by).sort((a, b) => sum(by[b], 'ds') - sum(by[a], 'ds')).map(ma => { const x = by[ma];
+        return `<tr>${spCell(ten[ma], ma)}<td class="cBan">${sum(x, 'banRa')}</td><td class="cHuy">${sum(x, 'huy') || ''}</td><td class="cOnl">${sum(x, 'online') || ''}</td><td class="${cls(posCh(x))}">${posCh(x)}</td><td>${fmt(sum(x, 'ds'))}</td></tr>`; }).join('') + '</tbody>';
+    $('h2BC').textContent = 'Theo ngày';
+    const days = [...new Set(kt.map(r => r.ngay).concat(d.chot.map(r => r[0]), d.chi.map(c => c.ngay)))].sort();
+    $('tblBC2').innerHTML = '<tr><th>Ngày</th><th>Số ca</th><th class="cBan">SL bán</th><th class="cHuy">Hủy</th><th>POS±</th><th>Doanh số</th><th>Tiền mặt bán + CK (k)</th><th>Lệch POS</th><th>Tiền chi (k)</th><th>XN sai</th></tr>' +
+      days.map(n => { const x = kt.filter(r => r.ngay === n), ks = caList.map(c => chot[n + '|' + c]).filter(Boolean);
+        const dt = ks.reduce((s, k) => s + k.dt, 0), app = ks.reduce((s, k) => s + k.app, 0);
+        return `<tr><td>${n}</td><td>${new Set(x.map(r => r.ca)).size}</td><td class="cBan">${sum(x, 'banRa')}</td><td class="cHuy">${sum(x, 'huy') || ''}</td><td class="${cls(posCh(x))}">${posCh(x)}</td><td>${fmt(sum(x, 'ds'))}</td><td>${ks.length ? fmt(dt) : ''}</td><td class="${cls(dt - app)}">${ks.length ? fmt(dt - app) : ''}</td><td>${fmt(d.chi.filter(c => c.ngay === n).reduce((s, c) => s + c.tien, 0)) || ''}</td><td class="neg">${d.xn.filter(r => r[0] === n && r[5] === 'Sai').length || ''}</td></tr>`; }).join('');
+    onlineTbl(kt, caList);
+  }
+  if (canhBao.length) msg('msgBC', canhBao.join(' '), 'warn');
+}
+/** Online chi tiết theo mốc/ca: SL online từng SP ở từng mốc + doanh số online. */
+function onlineTbl(rs, caList) {
+  const by = {}; rs.filter(r => r.online).forEach(r => { const x = by[r.ma] = by[r.ma] || { ten: r.ten, ds: 0 }; x[r.ca] = (x[r.ca] || 0) + r.online; x.ds += r.online * r.gia; });
+  const mas = Object.keys(by), tot = c => mas.reduce((s, m) => s + (by[m][c] || 0), 0);
+  $('h3BC').textContent = 'Online theo mốc/ca';
+  $('tblBC3').innerHTML = !mas.length ? '<tr><td class="small">Chưa có SP online.</td></tr>' :
+    '<thead><tr><th>Sản phẩm</th>' + caList.map(c => `<th>${mocLabel(c)}</th>`).join('') + '<th>Tổng</th><th>DS online</th></tr></thead><tbody>' +
+    mas.map(m => { const x = by[m], t = caList.reduce((s, c) => s + (x[c] || 0), 0);
+      return `<tr>${spCell(x.ten, m)}` + caList.map(c => `<td>${x[c] || ''}</td>`).join('') + `<td>${t}</td><td>${fmt(x.ds)}</td></tr>`; }).join('') +
+    '</tbody><tfoot><tr><td>Tổng</td>' + caList.map(c => `<td>${tot(c) || ''}</td>`).join('') + `<td>${caList.reduce((s, c) => s + tot(c), 0)}</td><td>${fmt(mas.reduce((s, m) => s + by[m].ds, 0))}</td></tr></tfoot>`;
+}
+const sum = (a, k) => a.reduce((s, r) => s + (r[k] || 0), 0);
+const ch = r => r.pos === undefined ? 0 : r.banRa + (r.online || 0) - r.pos; // Lệch POS = File (bán offline + online) − POS
+const posCh = a => a.filter(r => r.pos !== undefined).reduce((s, r) => s + ch(r), 0);
+function kpis(rs) {
+  $('kpiBC').innerHTML = [['SL bán', fmt(sum(rs, 'banRa'))], ['Doanh số', fmt(sum(rs, 'ds'))], ['Hủy (cái)', fmt(sum(rs, 'huy'))], ['Online', fmt(sum(rs, 'online'))], ['Lệch POS', fmt(posCh(rs))]]
+    .map(([a, b]) => `<div>${a}<b>${b}</b></div>`).join('');
+}
+$('kieu').onchange = () => $('lbNgayBC').style.display = $('kieu').value === 'ngay' ? '' : 'none';
+
+/* ---------- ĐĂNG KÝ / SẮP CA / LƯƠNG ---------- */
+const dAdd = (d, k) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + k); return t.toISOString().slice(0, 10); };
+const thu2 = d => dAdd(d, -((new Date(d + 'T00:00:00Z').getUTCDay() + 6) % 7));
+const days7 = w => [...Array(7)].map((_, i) => dAdd(w, i));
+const THU = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const dm = d => d.slice(8) + '/' + d.slice(5, 7);
+const gioCa = ten => { const c = INIT.ca.find(x => x.ten === ten); if (!c) return 0; const f = x => +x.slice(0, 2) + +x.slice(3) / 60; return f(c.kt) - f(c.bd); };
+const ttNV = ten => (INIT.nv.find(n => n.ten === ten) || {}).tt || '';
+const laPhu = ten => !!(INIT.ca.find(c => c.ten === ten) || {}).phu;
+const caXem = () => INIT.ca.filter(c => laQL() || !c.phu); // ca phụ chỉ Quản lý thấy
+const caHead = () => caXem().map(c => `<th>${c.ten}<br><span class="small">${c.bd}–${c.kt}</span></th>`).join('');
+
+let LICH = null;
+async function taiLich() {
+  const w = thu2($('lTuan').value), days = days7(w), d = await run('getWeek', w);
+  LICH = { w, days, d };
+  const chot = d.sap.length > 0;
+  $('lInfo').innerHTML = `Tuần <b>${dm(days[0])} – ${dm(days[6])}</b> · ` + (chot ? `<span class="pos">Đã chốt bởi ${d.nguoiChot || '?'}</span> — sửa rồi chốt lại nếu cần.` : `<span style="color:var(--warn)">Chưa chốt</span> — ô xếp ca đang điền sẵn theo đăng ký.`) +
+    (laQL() ? ` · ${new Set(d.dk.map(x => x.nv)).size}/${conLam().length} NV đã đăng ký.` : '');
+  veDk(); if (laQL()) veSap(); else veLichToi(); $('msgDk').className = $('msgSap').className = 'msg';
+}
+function veLichToi() { // NV: lịch đã được Quản lý chốt cho mình
+  const { days, d } = LICH;
+  $('lichToiTbl').innerHTML = !d.daChot ? '<tr><td class="small">Tuần này Quản lý chưa chốt lịch.</td></tr>' :
+    '<tr><th>Ngày</th><th>Ca được xếp</th><th>+/- giờ làm</th></tr>' + days.map((n, i) => { const tc = Math.round((d.tc || []).filter(x => x.ngay === n).reduce((s, x) => s + x.gio, 0) * 60); const cs = d.sap.filter(x => x.ngay === n).map(x => { const c = INIT.ca.find(y => y.ten === x.ca); return x.ca + (c ? ` (${c.bd}–${c.kt})` : ''); });
+      return `<tr><td>${THU[i]} ${dm(n)}</td><td style="text-align:left">${cs.join(', ') || '<span class="small">nghỉ</span>'}</td><td class="${cls(tc)}">${tc ? (tc > 0 ? '+' : '') + tc + ' phút' : ''}</td></tr>`; }).join('');
+}
+function veDk() {
+  const nv = $('dkNv').value, { days, d } = LICH;
+  $('dkTbl').innerHTML = '<tr><th>Ngày</th>' + caHead() + '</tr>' + days.map((n, i) => `<tr><td>${THU[i]} ${dm(n)}</td>` +
+    caXem().map(c => `<td><input type="checkbox" data-ngay="${n}" data-ca="${c.ten}" ${d.dk.some(x => x.ngay === n && x.ca === c.ten && x.nv === nv) ? 'checked' : ''} ${nv ? '' : 'disabled'}></td>`).join('') + '</tr>').join('');
+}
+async function luuDk() {
+  const nv = $('dkNv').value; if (!nv) return msg('msgDk', 'Chọn tên của bạn.', 'err');
+  const list = [...$('dkTbl').querySelectorAll('input:checked')].map(i => ({ ngay: i.dataset.ngay, ca: i.dataset.ca }));
+  try { await run('saveDangKy', nv, LICH.w, list); await taiLich(); toast(); msg('msgDk', `Đã lưu ${list.length} ca đăng ký của ${nv}.`, 'ok'); }
+  catch (e) { msg('msgDk', e.message, 'err'); }
+}
+const MAX_NV_CA = 3;
+function veSap() {
+  const { days, d } = LICH, chot = d.sap.length > 0;
+  $('sapTbl').innerHTML = '<thead><tr><th>Ngày</th>' + caHead() + '<th>+/- giờ làm<br><span class="small">phút</span></th></tr></thead><tbody>' + days.map((n, i) => `<tr data-ngay="${n}"><td>${THU[i]}<br>${dm(n)}</td>` +
+    INIT.ca.map(c => {
+      const reg = d.dk.filter(x => x.ngay === n && x.ca === c.ten).map(x => x.nv);
+      const sel = (chot ? d.sap.filter(x => x.ngay === n && x.ca === c.ten).map(x => x.nv) : reg).slice(0, MAX_NV_CA);
+      const opts = v => '<option value="">—</option>' + reg.concat(conLam().map(x => x.ten).filter(t => !reg.includes(t)))
+        .map(t => `<option value="${t}" ${t === v ? 'selected' : ''}>${reg.includes(t) ? '✓ ' : ''}${t}</option>`).join('');
+      return `<td>${[0, 1, 2].map(k => `<select data-ngay="${n}" data-ca="${c.ten}">${opts(sel[k] || '')}</select>`).join('')}` +
+        `<div class="dk">${reg.length ? 'ĐK: ' + reg.map(tagNV).join(' ') : 'Chưa ai ĐK'}</div></td>`;
+    }).join('') + `<td class="tcc"></td></tr>`).join('') + '</tbody>';
+  $('sapTbl').querySelectorAll('select').forEach(markReg);
+  tongSap();
+}
+function markReg(s) { // màu theo NV; viền liền = có đăng ký, viền đứt = quản lý thêm
+  const reg = !!s.value && LICH.d.dk.some(x => x.ngay === s.dataset.ngay && x.ca === s.dataset.ca && x.nv === s.value), [n, v] = mauNV(s.value);
+  s.style.background = s.value ? n : ''; s.style.borderColor = s.value ? v : ''; s.style.borderWidth = s.value ? '2px' : ''; s.style.borderStyle = s.value && !reg ? 'dashed' : '';
+}
+const sapChon = () => { const seen = new Set(), out = []; // bỏ trùng tên trong cùng 1 ô
+  $('sapTbl').querySelectorAll('select').forEach(s => { const k = s.dataset.ngay + '|' + s.dataset.ca + '|' + s.value; if (s.value && !seen.has(k)) { seen.add(k); out.push({ ngay: s.dataset.ngay, ca: s.dataset.ca, nv: s.value }); } });
+  return out; };
+function tongSap() {
+  const moi = () => ({ dk: 0, ca: 0, gio: 0, tc: 0, ngay: {} }), t = {}; conLam().forEach(n => t[n.ten] = moi());
+  LICH.d.dk.forEach(x => (t[x.nv] = t[x.nv] || moi()).dk++);
+  const chon = sapChon().filter(x => !laPhu(x.ca)); // ca phụ không tính ca/giờ/phụ cấp/+- giờ cho NV
+  chon.forEach(x => { const y = t[x.nv] = t[x.nv] || moi(); y.ca++; y.gio += gioCa(x.ca); y.ngay[x.ngay] = (y.ngay[x.ngay] || 0) + 1; });
+  // +/- giờ làm (phút): giữ số đã nhập (ô đang có) hoặc số đã lưu (sheet lưu giờ → đổi ra phút); mỗi NV được xếp trong ngày có 1 ô
+  const cu = {}; (LICH.d.tc || []).forEach(x => cu[x.ngay + '|' + x.nv] = Math.round(x.gio * 60));
+  $('sapTbl').querySelectorAll('input.tcg').forEach(i => cu[i.dataset.ngay + '|' + i.dataset.nv] = i.value);
+  $('sapTbl').querySelectorAll('tbody tr').forEach(tr => {
+    const n = tr.dataset.ngay, ds = [...new Set(chon.filter(x => x.ngay === n).map(x => x.nv))];
+    if (tr.dataset.tck === ds.join('|')) return; tr.dataset.tck = ds.join('|'); // danh sách NV không đổi → giữ nguyên ô (không mất ô đang gõ)
+    tr.querySelector('.tcc').innerHTML = ds.map(v => `<div class="tcr">${tagNV(v)}<input type="number" class="tcg" step="1" placeholder="phút" data-ngay="${n}" data-nv="${v}" value="${cu[n + '|' + v] || ''}"></div>`).join('') || '<span class="small">—</span>';
+  });
+  tcList().forEach(x => (t[x.nv] = t[x.nv] || moi()).tc += x.phut);
+  $('sapTong').innerHTML = '<tr><th>Nhân viên</th><th>Trạng thái</th><th>Ca đăng ký</th><th>Ca được xếp</th><th>Giờ xếp</th><th>+/- giờ làm (phút)</th><th>Phụ cấp</th></tr>' +
+    Object.keys(t).map(n => { const pc = Object.values(t[n].ngay).filter(k => k >= 2).length * INIT.phuCap;
+      return `<tr><td>${tagNV(n)}</td><td>${ttNV(n)}</td><td>${t[n].dk || '<span class="neg">0</span>'}</td><td>${t[n].ca}</td><td>${+t[n].gio.toFixed(2)}</td><td class="${cls(t[n].tc)}">${t[n].tc || ''}</td><td>${pc ? fmt(pc) : ''}</td></tr>`; }).join('');
+}
+const tcList = () => [...$('sapTbl').querySelectorAll('input.tcg')].filter(i => Math.round(+i.value)).map(i => ({ ngay: i.dataset.ngay, nv: i.dataset.nv, phut: Math.round(+i.value), gio: Math.round(+i.value) / 60 }));
+async function luuSap() {
+  const list = sapChon();
+  try { const n = await run('saveSapCa', '', LICH.w, list, $('sapNguoi').value, tcList()); await taiLich();
+    toast(); msg('msgSap', `Đã chốt ${n} lượt ca cho tuần này.`, 'ok'); taiNhac(); }
+  catch (e) { msg('msgSap', e.message, 'err'); }
+}
+async function tinhLuong() {
+  try {
+    const r = await run('getLuong', '', $('lgThang').value), t = {};
+    const nvx = n => t[n] = t[n] || { gio: 0, tien: 0, dg: new Set(), thieu: false, ca: {}, ngay: {}, tcg: 0, tct: 0 };
+    // Giờ + lương/giờ lấy theo số đã chốt cứng lúc Chốt lịch; dòng cũ chưa có thì tính theo danh mục hiện tại
+    r.sap.forEach(x => { const y = nvx(x.nv);
+      const g = x.gio !== '' && x.gio != null ? +x.gio : gioCa(x.ca), dg = x.dg !== '' && x.dg != null ? +x.dg : (INIT.luongGio[ttNV(x.nv)] || 0);
+      y.gio += g; y.tien += g * dg; if (dg) y.dg.add(dg); else y.thieu = true; y.ca[x.ca] = (y.ca[x.ca] || 0) + 1; y.ngay[x.ngay] = (y.ngay[x.ngay] || 0) + 1; });
+    r.tc.forEach(x => { const y = nvx(x.nv), dg = x.dg || INIT.luongGio[ttNV(x.nv)] || 0; y.tcg += x.gio; y.tct += x.gio * dg; });
+    // Lương từng ngày theo Sắp ca: [ngày][NV] = {tien, ca: ['Ca 1 05:00–09:00']}
+    const LN = {}, o = (n, v) => ((LN[n] = LN[n] || {})[v] = LN[n][v] || { tien: 0, ca: [], soCa: 0 });
+    r.sap.forEach(x => { const g = x.gio !== '' && x.gio != null ? +x.gio : gioCa(x.ca), dg = x.dg !== '' && x.dg != null ? +x.dg : (INIT.luongGio[ttNV(x.nv)] || 0), c = INIT.ca.find(y => y.ten === x.ca);
+      const z = o(x.ngay, x.nv); z.tien += g * dg; z.soCa++; const h = t => +t.slice(0, 2) + 'h' + (t.slice(3) === '00' ? '' : t.slice(3)); z.ca.push(c ? h(c.bd) + '–' + h(c.kt) : x.ca); });
+    Object.values(LN).forEach(m => Object.values(m).forEach(z => { if (z.soCa >= 2) z.tien += INIT.phuCap; }));
+    r.tc.forEach(x => { o(x.ngay, x.nv).tien += x.gio * (x.dg || INIT.luongGio[ttNV(x.nv)] || 0); });
+    const ds = Object.keys(t).sort(), thieu = ds.filter(n => t[n].thieu);
+    ds.forEach(n => { const x = t[n]; x.soCa = Object.values(x.ca).reduce((a, b) => a + b, 0); x.pcN = Object.values(x.ngay).filter(k => k >= 2).length;
+      x.pc = x.pcN * INIT.phuCap; x.lc = Math.round(x.tien); x.tct = Math.round(x.tct); x.tong = x.lc + x.pc + x.tct; });
+    const hang = [ // [tên hàng, giá trị theo NV, có cộng tổng không, in đậm]
+      ['Trạng thái', x => x.tt], ['Số ca', x => x.soCa, 1], ['Giờ ca', x => +x.gio.toFixed(2), 1], ['Lương/giờ', x => [...x.dg].map(fmt).join(' / ') || 0],
+      ['Lương ca', x => fmt(x.lc), 1, 0, 'lc'], ['Ngày làm ≥2 ca', x => x.pcN, 1], ['Phụ cấp', x => fmt(x.pc), 1, 0, 'pc'],
+      ['+/- giờ làm (phút)', x => Math.round(x.tcg * 60), 1], ['Tiền +/- giờ làm', x => fmt(x.tct), 1, 0, 'tct'], ['Tổng tiền', x => fmt(x.tong), 1, 1, 'tong']];
+    ds.forEach(n => t[n].tt = ttNV(n) || '<span class="neg">chưa có</span>');
+    const sum = (f, k) => k ? fmt(ds.reduce((s, n) => s + t[n][k], 0)) : +ds.reduce((s, n) => s + (+f(t[n]) || 0), 0).toFixed(2);
+    $('lgTbl').className = 'lg';
+    $('lgTbl').innerHTML = !ds.length ? '<tr><td class="small">Tháng này chưa có lịch đã chốt.</td></tr>' :
+      '<thead><tr><th>Mục</th>' + ds.map(n => `<th>${tagNV(n)}</th>`).join('') + '<th>Tổng</th></tr></thead><tbody>' +
+      hang.map(([ten, f, cong, dam, k]) => `<tr class="${dam ? 'tongR' : ''}"><td>${ten}</td>` + ds.map(n => `<td>${f(t[n])}</td>`).join('') + `<td><b>${cong ? sum(f, k) : ''}</b></td></tr>`).join('') + '</tbody>';
+    const ngs = Object.keys(LN).sort();
+    $('lgNgay').innerHTML = !ngs.length ? '' : '<thead><tr><th>Ngày</th>' + ds.map(n => `<th>${tagNV(n)}</th>`).join('') + '<th>Tổng ngày</th></tr></thead><tbody>' +
+      ngs.map(n => `<tr><td>${THU[(new Date(n + 'T12:00:00').getDay() + 6) % 7]} ${dm(n)}</td>` + ds.map(v => { const z = LN[n][v];
+        return `<td>${z ? `<b>${fmt(z.tien)}</b><div class="small">${z.ca.join(', ')}</div>` : ''}</td>`; }).join('') +
+        `<td><b>${fmt(Object.values(LN[n]).reduce((a, z) => a + z.tien, 0))}</b></td></tr>`).join('') +
+      '</tbody><tfoot><tr class="tongR"><td>Tổng</td>' + ds.map(v => `<td>${fmt(ngs.reduce((a, n) => a + (LN[n][v] ? LN[n][v].tien : 0), 0))}</td>`).join('') +
+      `<td>${fmt(ngs.reduce((a, n) => a + Object.values(LN[n]).reduce((b, z) => b + z.tien, 0), 0))}</td></tr></tfoot>`;
+    // Tổng theo tuần: mỗi 7 ngày tính từ ngày 1 (tuần 5 = ngày 29 → cuối tháng)
+    const TU = {}, cuoi = new Date(+$('lgThang').value.slice(0, 4), +$('lgThang').value.slice(5, 7), 0).getDate();
+    ngs.forEach(n => { const k = Math.min(4, Math.floor((+n.slice(8) - 1) / 7)); Object.keys(LN[n]).forEach(v => { TU[k] = TU[k] || {}; TU[k][v] = (TU[k][v] || 0) + LN[n][v].tien; }); });
+    const tuK = Object.keys(TU).map(Number).sort(), tongTu = k => Object.values(TU[k]).reduce((a, b) => a + b, 0);
+    $('lgTuan').innerHTML = !tuK.length ? '' : '<thead><tr><th>Tuần</th>' + ds.map(n => `<th>${tagNV(n)}</th>`).join('') + '<th>Tổng tuần</th></tr></thead><tbody>' +
+      tuK.map(k => `<tr><td>Tuần ${k + 1} <span class="small">${k * 7 + 1}–${k < 4 ? k * 7 + 7 : cuoi}</span></td>` + ds.map(v => `<td>${TU[k][v] ? fmt(TU[k][v]) : ''}</td>`).join('') + `<td><b>${fmt(tongTu(k))}</b></td></tr>`).join('') +
+      '</tbody><tfoot><tr class="tongR"><td>Tổng</td>' + ds.map(v => `<td>${fmt(tuK.reduce((a, k) => a + (TU[k][v] || 0), 0))}</td>`).join('') + `<td>${fmt(tuK.reduce((a, k) => a + tongTu(k), 0))}</td></tr></tfoot>`;
+    $('lgH2').textContent = 'Số ca theo loại';
+    $('lgCt').innerHTML = !ds.length ? '' : '<tr><th>Ca</th>' + ds.map(n => `<th>${tagNV(n)}</th>`).join('') + '</tr>' +
+      INIT.ca.filter(c => !c.phu).map(c => `<tr><td>${c.ten} <span class="small">${+gioCa(c.ten).toFixed(2)}h</span></td>` + ds.map(n => `<td>${t[n].ca[c.ten] || ''}</td>`).join('') + '</tr>').join('');
+    $('lgInfo').textContent = 'Tính theo lịch đã chốt ở tab Lịch ca. Lương ca = giờ × lương/giờ (chốt cứng lúc Chốt lịch tuần). Phụ cấp ' + fmt(INIT.phuCap) + 'đ/ngày khi làm từ 2 ca trở lên. Tiền +/- giờ làm = số phút (Quản lý nhập ở Sắp ca, âm = làm thiếu) ÷ 60 × lương/giờ. Thử việc ' + fmt(INIT.luongGio['Thử việc']) + 'đ/giờ, Chính thức ' + fmt(INIT.luongGio['Chính thức']) + 'đ/giờ.';
+    if (thieu.length) msg('msgLg', `Có ca chưa có lương/giờ (NV chưa có trạng thái lúc chốt): ${thieu.join(', ')}. Cập nhật trạng thái trong tab NHANVIEN rồi chốt lại tuần đó.`, 'warn'); else $('msgLg').className = 'msg';
+  } catch (e) { msg('msgLg', e.message, 'err'); }
+}
+
+/* ---------- P&L ---------- */
+const PN_CO_DINH = ['Mặt bằng', 'Điện', 'Nước'];
+let PN = null;
+async function taiPnl() {
+  try { PN = await run('getPnl', '', $('pnThang').value); } catch (e) { return msg('msgPn', e.message, 'err'); }
+  const tien = m => (PN.items.find(x => x.muc === m) || {}).tien || '';
+  $('pnCp').innerHTML = PN_CO_DINH.map(m => `<tr><td>${m}</td><td><input type="number" inputmode="numeric" data-m="${m}" value="${tien(m)}"></td><td></td></tr>`).join('');
+  PN.items.filter(x => !PN_CO_DINH.includes(x.muc)).forEach(x => themCp(x.muc, x.tien));
+  $('msgPn').className = 'msg';
+  if (PN.thieuGiaNhap.length) msg('msgPn', `Chưa có Giá nhập/gói (DM_SP cột H) nên giá vốn đang tính 0 cho: ${PN.thieuGiaNhap.join('; ')}`, 'warn');
+  calcPnl();
+}
+function themCp(muc = '', tien = '') {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input class="khac" placeholder="Tên chi phí" value="${String(muc).replace(/"/g, '&quot;')}" style="width:130px"></td><td><input type="number" inputmode="numeric" class="khacT" value="${tien}"></td><td><button class="b g" type="button">✕</button></td>`;
+  tr.querySelector('button').onclick = () => { tr.remove(); calcPnl(); };
+  $('pnCp').appendChild(tr);
+}
+const cpItems = () => [...$('pnCp').querySelectorAll('tr')].map(tr => { const a = tr.querySelector('input[data-m]');
+  return a ? { muc: a.dataset.m, tien: +a.value || 0 } : { muc: tr.querySelector('.khac').value.trim(), tien: +tr.querySelector('.khacT').value || 0 }; }).filter(x => x.muc);
+const dongDon = P => P.donLon && P.donLon.so ? `<tr><td class="small">↳ Trong đó đơn hàng lớn (${P.donLon.so} đơn, ${P.donLon.xong} đã xong) — đã nằm trong doanh thu file, không cộng thêm</td><td class="small">${fmt(P.donLon.tien)}</td></tr>` : '';
+/** Tính P&L tháng — dùng chung cho tab P&L và tab Tổng quan để số 2 tab luôn khớp. it = chi phí cố định [{muc, tien}] */
+function pnlTinh(P, it) {
+  const cdN = it.reduce((s, x) => s + x.tien, 0) / P.soNgay, cd = cdN * (P.daQua != null ? P.daQua : P.soNgay); // CP cố định chỉ tính cho ngày đã qua
+  // Doanh thu = bán ra trên file (offline + online) × giá bán. LN = Doanh thu − Giá vốn (bán ra × giá vốn) − Chi phí (lương + tiền chi + CP cố định/ngày).
+  // Lệch = Σ 'Lệch file' từng lần chốt (TM bán + CK − doanh thu file của mốc đó), server tính — chỉ theo dõi, không trừ vào LN
+  const rows = P.ngay.map(x => { const thu = x.file + (x.fileOnl || 0), cp = x.luong + x.chi + cdN, thuc = x.tm + x.ck + x.onl;
+    return { ...x, thu, thuc, cp, cd: cdN, lech: x.lech || 0, ln: thu - x.gv - cp }; });
+  const T = k => rows.reduce((s, x) => s + x[k], 0);
+  const thu = T('thu'), gv = T('gv'), chi = T('chi'), lg = T('luong'), gop = thu - gv, tcp = cd + chi + lg;
+  return { rows, T, thu, gv, chi, lg, gop, tcp, ln: gop - tcp };
+}
+function calcPnl() {
+  if (!PN) return;
+  const it = cpItems(), { rows, T, thu, gv, chi, lg, gop, tcp, ln } = pnlTinh(PN, it);
+  const h = (t, v, c = '') => `<tr class="${c}"><td>${t}</td><td class="${c === 'kq' ? cls(v) : ''}">${fmt(v)}</td></tr>`;
+  const cd = tcp - chi - lg, lech = T('lech');
+  $('pnKq').innerHTML = `<tr><td colspan="2" class="small">Tính ${PN.daQua}/${PN.soNgay} ngày đã qua (chưa tính hôm nay)</td></tr>` + h('Doanh thu', thu, 'kq') + h('Giá vốn', -gv) + h('Lãi gộp', gop, 'kq') +
+    h('Chi phí cố định (' + it.filter(x => x.tien).map(x => x.muc).join(', ') + ')', -cd) + h('Lương nhân viên', -lg) + h('Tiền chi', -chi) +
+    h('Lợi nhuận', ln, 'kq') + `<tr><td>% LN / Doanh thu</td><td>${thu ? (ln / thu * 100).toFixed(1) + '%' : '—'}</td></tr>` +
+    `<tr><td>Lệch tiền <span class="small">(Σ Lệch file các lần chốt, âm = thiếu)</span></td><td class="${cls(lech)}">${fmt(lech)}</td></tr>`;
+  $('pnNgay').innerHTML = '<thead><tr><th>Ngày</th><th>Doanh thu file</th><th>Giá vốn</th><th>Chi phí<br><span class="small">lương+chi+CĐ</span></th><th>Lợi nhuận</th><th>Lệch tiền</th></tr></thead><tbody>' +
+    (rows.map(x => `<tr><td>${dm(x.ngay)}</td><td>${fmt(x.thu)}</td><td>${fmt(x.gv)}</td><td>${fmt(x.cp)}</td><td class="${cls(x.ln)}"><b>${fmt(x.ln)}</b></td><td class="${cls(x.lech)}">${x.coChot ? fmt(x.lech) : ''}</td></tr>`).join('') ||
+      '<tr><td colspan="6" class="small">Tháng này chưa có số liệu.</td></tr>') +
+    `</tbody><tfoot><tr><td>Tổng ${rows.length} ngày</td><td>${fmt(thu)}</td><td>${fmt(gv)}</td><td>${fmt(T('cp'))}</td><td>${fmt(T('ln'))}</td><td>${fmt(T('lech'))}</td></tr></tfoot>`;
+}
+async function luuPnl() {
+  try { await run('savePnl', '', $('pnThang').value, cpItems()); toast(); msg('msgPn', 'Đã lưu chi phí tháng ' + $('pnThang').value + '.', 'ok'); }
+  catch (e) { msg('msgPn', e.message, 'err'); }
+}
+
+/* ---------- TỔNG QUAN THÁNG (chỉ Quản lý) ---------- */
+const tenSp = x => gon((INIT.sp.find(s => s.ma === x.ma) || x).ten);
+/** ▲▼ % so với cùng kỳ. xau = true: tăng là xấu (chi phí, hủy…) → tô đỏ khi tăng. */
+const soSanh = (a, b, xau) => { if (!b) return '<span class="small">— chưa có kỳ trước</span>'; const p = (a - b) / Math.abs(b) * 100;
+  return `<span class="small ${(p >= 0) !== !!xau ? 'pos' : 'neg'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p).toFixed(0)}% cùng kỳ</span>`; };
+async function taiTq() {
+  msg('msgOv', 'Đang tải…', 'warn');
+  let d; try { d = await run('getTongQuan', '', $('ovThang').value); } catch (e) { return msg('msgOv', e.message, 'err'); }
+  $('msgOv').className = 'msg';
+  // Ca + giờ làm theo NV (lịch đã chốt, server đã bỏ ca phụ; NV chỉ nhận lịch của mình)
+  const nvT = {}, g = n => nvT[n] = nvT[n] || { ca: 0, gio: 0, loai: {} };
+  d.lg.sap.forEach(x => { const y = g(x.nv); y.ca++; y.gio += x.gio !== '' && x.gio != null ? +x.gio : gioCa(x.ca); y.loai[x.ca] = (y.loai[x.ca] || 0) + 1; });
+  d.lg.tc.forEach(x => g(x.nv).gio += x.gio);
+  // Top 10 theo số lượng (cả cửa hàng — ai cũng xem)
+  const top = d.pt.sp.filter(x => x.sl > 0).sort((p, q) => q.sl - p.sl), tongSl = top.reduce((s, x) => s + x.sl, 0), max = top.length ? top[0].sl : 1;
+  $('ovTop').innerHTML = '<thead><tr><th>#</th><th>Sản phẩm</th><th class="cBan">Bán (cái)</th><th>Doanh số (k)</th><th>Tỷ trọng SL</th><th style="width:25%"></th></tr></thead><tbody>' +
+    (top.slice(0, 10).map((x, i) => `<tr><td>${i + 1}</td><td style="text-align:left">${tenSp(x)}<div class="small">${x.ma}</div></td><td class="cBan">${fmt(x.sl)}</td><td>${fmt(x.ds / 1000)}</td><td>${(x.sl / tongSl * 100).toFixed(1)}%</td><td><div class="bar" style="width:${(x.sl / max * 100).toFixed(0)}%"></div></td></tr>`).join('') ||
+      '<tr><td colspan="6" class="small">Tháng này chưa có số liệu bán.</td></tr>') + '</tbody>';
+  $('ovQL').hidden = $('ovNvBox').hidden = !!d.laNV; $('ovNvGhiChu').hidden = !d.laNV;
+  if (d.laNV) { // Nhân viên: chỉ số của chính mình
+    const y = nvT[ME.ten] || { ca: 0, gio: 0 }, z = d.vh.nv[ME.ten] || { ds: 0, xnSai: 0, lech: 0 };
+    $('ovInfo').textContent = `Tháng ${$('ovThang').value} · số liệu của bạn đến ${dm(d.den)} (nghìn đ)`;
+    $('ovKpi').innerHTML = [['Nhân viên', tagNV(ME.ten)], ['Tổng ca làm', y.ca], ['Tổng giờ làm', +y.gio.toFixed(1)], ['Doanh thu tháng (k)', fmt(z.ds)],
+      ['Kiểm tồn sai (lần)', `<span class="${z.xnSai ? 'neg' : 'pos'}">${z.xnSai}</span>`], ['Tiền lệch tháng (k)', `<span class="${cls(z.lech)}">${fmt(z.lech)}</span>`]]
+      .map(([l, x]) => `<div>${l}<b>${x}</b></div>`).join('');
+    return;
+  }
+  const a = pnlTinh(d.pnl, d.pnl.items), b = pnlTinh(d.pnlT, d.pnlT.items), v = d.vh, vT = d.vhT;
+  // So cùng kỳ: cộng theo ngày (đã gồm CP cố định/ngày); tháng trước chỉ lấy ngày 1 → N cho công bằng khi tháng này chưa hết
+  const ck = (P, f, cat) => P.rows.filter(x => !cat || x.ngay.slice(8) <= d.N).reduce((s, x) => s + f(x), 0);
+  const so = (f, xau) => soSanh(ck(a, f), ck(b, f, 1), xau);
+  const pct = (P, cat) => { const t = ck(P, x => x.thu, cat); return t ? ck(P, x => x.ln, cat) / t * 100 : 0; };
+  const dP = pct(a) - pct(b, 1), coT = ck(b, x => x.thu, 1);
+  $('ovInfo').textContent = `Tháng ${$('ovThang').value} · số liệu đến ${dm(d.den)} · ▲▼ = so với cùng kỳ ngày 01–${d.N}/${d.truoc.slice(5)}. Doanh thu, Chi phí, Lợi nhuận khớp tab P&L.`;
+  if (d.pnl.thieuGiaNhap.length) msg('msgOv', `Chưa có Giá nhập/gói (DM_SP cột H) nên giá vốn đang tính 0 cho ${d.pnl.thieuGiaNhap.length} SP — xem chi tiết ở tab P&L.`, 'warn');
+  $('ovKpi').innerHTML = [['Doanh thu file (k)', fmt(a.thu), so(x => x.thu)], ['Giá vốn (k)', fmt(a.gv), so(x => x.gv, 1)], ['Lãi gộp (k)', fmt(a.gop), so(x => x.thu - x.gv)],
+    ['Tổng chi phí (k)', fmt(a.tcp), so(x => x.cp, 1)], ['Lợi nhuận (k)', `<span class="${cls(a.ln)}">${fmt(a.ln)}</span>`, so(x => x.ln)],
+    ['% LN / Tổng thu', a.thu ? (a.ln / a.thu * 100).toFixed(1) + '%' : '—', coT ? `<span class="small ${dP >= 0 ? 'pos' : 'neg'}">${dP >= 0 ? '▲' : '▼'} ${Math.abs(dP).toFixed(1)} điểm cùng kỳ</span>` : ''],
+    ['SL bán (cái)', fmt(v.sl), soSanh(v.sl, vT.sl)], ['Hủy (k)', fmt(v.huyTien), soSanh(v.huyTien, vT.huyTien, 1)],
+    ['Đơn hàng lớn (k)', fmt(d.pnl.donLon.tien), `<span class="small">${d.pnl.donLon.so} đơn · ${a.thu ? (d.pnl.donLon.tien / a.thu * 100).toFixed(1) : 0}% doanh thu (đã nằm trong)</span>`]]
+    .map(([l, x, s]) => `<div>${l}<b>${x}</b>${s}</div>`).join('');
+  // Biểu đồ cột theo ngày
+  const mx = Math.max(1, ...a.rows.map(x => Math.max(x.thu, Math.abs(x.ln))));
+  $('ovChart').innerHTML = a.rows.map(x => `<div class="c" title="${dm(x.ngay)} · Thu ${fmt(x.thu)}k · LN ${fmt(x.ln)}k"><div><i style="height:${x.thu / mx * 100}%"></i><i class="${x.ln < 0 ? 'am' : 'l'}" style="height:${Math.abs(x.ln) / mx * 100}%"></i></div>${+x.ngay.slice(8)}</div>`).join('') ||
+    '<span class="small">Tháng này chưa có số liệu.</span>';
+  // Cơ cấu chi phí: CP cố định + lương + tiền chi theo mục (tổng = Tổng chi phí tab P&L)
+  const muc = {}, tl = (d.pnl.daQua != null ? d.pnl.daQua : d.pnl.soNgay) / d.pnl.soNgay; d.chi.filter(x => x.ngay < today()).forEach(x => muc[x.muc] = (muc[x.muc] || 0) + x.tien); // chỉ ngày đã qua
+  const cp = d.pnl.items.filter(x => x.tien).map(x => [x.muc, x.tien * tl]).concat([['Lương nhân viên', a.lg]], Object.keys(muc).map(m => ['Tiền chi: ' + m, muc[m]])).sort((p, q) => q[1] - p[1]);
+  $('ovCp').innerHTML = '<tr><th>Khoản</th><th>Nghìn đ</th><th>Tỷ trọng</th><th style="width:35%"></th></tr>' +
+    cp.map(([m, t]) => `<tr><td>${m}</td><td>${fmt(t)}</td><td>${a.tcp ? (t / a.tcp * 100).toFixed(1) : 0}%</td><td><div class="bar" style="width:${a.tcp ? t / a.tcp * 100 : 0}%"></div></td></tr>`).join('') +
+    `<tr class="kq"><td>Tổng chi phí</td><td>${fmt(a.tcp)}</td><td>100%</td><td></td></tr>`;
+  // Kiểm soát vận hành
+  const het = d.pt.sp.filter(x => x.ton != null && x.b7 > 0 && x.ton / (x.b7 / 7) < 2);
+  $('ovVh').innerHTML = [['Hủy (cái)', fmt(v.huy), soSanh(v.huy, vT.huy, 1)], ['Bán online (cái)', fmt(v.onl), soSanh(v.onl, vT.onl)],
+    ['Lệch POS (cái)', `<span class="${v.lechPos ? 'neg' : 'pos'}">${fmt(v.lechPos)}</span>`, '<span class="small">(offline + online) − POS</span>'],
+    ['Xác nhận tồn Sai', `<span class="${v.xnSai ? 'neg' : ''}">${v.xnSai}</span>`, soSanh(v.xnSai, vT.xnSai, 1)],
+    ['Chốt tiền Đúng / Sai / Chờ', `${v.dung} / <span class="${v.sai ? 'neg' : ''}">${v.sai}</span> / ${v.cho}`, v.cho ? '<span class="small neg">còn lần chờ duyệt</span>' : ''],
+    ['SP sắp hết (< 2 ngày)', `<span class="${het.length ? 'neg' : 'pos'}">${het.length}</span>`, '']].map(([l, x, s]) => `<div>${l}<b>${x}</b>${s}</div>`).join('');
+  $('ovHet').textContent = het.length ? 'Sắp hết hàng: ' + het.map(tenSp).join(', ') : '';
+  // Hiệu suất & ca làm việc theo NV
+  Object.keys(v.nv).forEach(g);
+  const ds = Object.keys(nvT).sort((p, q) => nvT[q].gio - nvT[p].gio);
+  $('ovNv').innerHTML = !ds.length ? '<tr><td class="small">Tháng này chưa có lịch đã chốt hoặc phiếu kiểm tồn.</td></tr>' :
+    '<thead><tr><th>Nhân viên</th><th>Số ca</th><th>Giờ làm</th><th>Ca theo loại</th><th>DS mốc kiểm (k)</th><th>DS / giờ (k)</th><th class="cHuy">Hủy (cái)</th><th>XN tồn Sai</th><th>Chốt tiền Sai</th><th>Lệch file (k)</th></tr></thead><tbody>' +
+    ds.map(n => { const y = nvT[n], z = v.nv[n] || { ds: 0, huy: 0, xnSai: 0, chotSai: 0, lech: 0 };
+      return `<tr><td>${tagNV(n)}</td><td>${y.ca}</td><td>${+y.gio.toFixed(1)}</td><td style="text-align:left;white-space:normal;min-width:110px">${Object.keys(y.loai).sort().map(c => c + ' × ' + y.loai[c]).join(', ')}</td>` +
+        `<td>${fmt(z.ds)}</td><td>${y.gio > 0 ? fmt(z.ds / y.gio) : ''}</td><td class="cHuy">${z.huy || ''}</td><td class="${z.xnSai ? 'neg' : ''}">${z.xnSai || ''}</td><td class="${z.chotSai ? 'neg' : ''}">${z.chotSai || ''}</td><td class="${cls(z.lech)}">${z.lech ? fmt(z.lech) : ''}</td></tr>`; }).join('') +
+    `</tbody><tfoot><tr><td>Tổng</td><td>${ds.reduce((s, n) => s + nvT[n].ca, 0)}</td><td>${+ds.reduce((s, n) => s + nvT[n].gio, 0).toFixed(1)}</td><td></td><td></td><td></td><td></td><td></td><td></td><td>${fmt(ds.reduce((s, n) => s + ((v.nv[n] || {}).lech || 0), 0))}</td></tr></tfoot>`;
+}
+
+/* ---------- TỒN KHO ---------- */
+const ICON = c => `<svg width="18" height="16" viewBox="0 0 18 16" style="vertical-align:-3px;flex:none"><path d="M9 1 17 15H1Z" fill="${c}"/><rect x="8.1" y="5.4" width="1.8" height="5.2" fill="#fff"/><rect x="8.1" y="11.7" width="1.8" height="1.8" fill="#fff"/></svg>`;
+const THU7 = n => ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][new Date(n + 'T12:00:00').getDay()];
+async function taiTk() {
+  msg('msgTk', 'Đang tính…', 'warn');
+  let d; try { d = await run('getTonKho'); } catch (e) { return msg('msgTk', e.message, 'err'); }
+  $('msgTk').className = 'msg';
+  if (!d.sp.length) { $('tkInfo').textContent = ''; $('tkKpi').innerHTML = ''; $('tkTbl').innerHTML = '<tr><td class="small">Chưa có phiếu kiểm tồn.</td></tr>'; return; }
+  const c = d.caSau, n1 = x => x ? +x.toFixed(1) : '';
+  $('tkInfo').innerHTML = `Tồn theo phiếu kiểm mới nhất <b>${THU7(d.ngay)} ${dm(d.ngay)} mốc ${d.moc}</b>. Ca sau = ${c.tu || 'đầu ngày'} → ${c.den} ${THU7(c.ngay)} ${dm(c.ngay)}. Dự báo bán lẻ (offline + online) = TB cùng thứ 4 tuần gần nhất (đã trừ đơn hàng lớn cũ) + đơn hàng lớn sắp giao.`;
+  const xep = { do: 0, vang: 1, '': 2 }, ds = d.sp.sort((a, b) => xep[a.muc] - xep[b.muc] || (b.datNgay + b.datMai) - (a.datNgay + a.datMai));
+  const dem = m => ds.filter(x => x.muc === m).length;
+  $('tkKpi').innerHTML = `<div class="${dem('do') ? 'bad' : ''}">${ICON('#d32f2f')} Không đủ ca sau<b>${dem('do')} SP</b></div><div class="${dem('vang') ? 'alert' : ''}">${ICON('#f2b600')} Có thể hết đến mai<b>${dem('vang')} SP</b></div>` +
+    `<div>Đặt ngay<b>${ds.reduce((s, x) => s + x.datNgay, 0)} gói</b></div><div>Đặt ngày mai<b>${ds.reduce((s, x) => s + x.datMai, 0)} gói</b></div>`;
+  $('tkTbl').innerHTML = `<thead><tr><th>Sản phẩm</th><th class="cTon">Tồn<br><small>cái</small></th><th>Bán dự báo<br><small>ca sau</small></th><th>Bán dự báo<br><small>đến hết ${dm(d.mai)}</small></th><th>Trong đó<br><small>đơn lớn</small></th><th>Đặt ngay<br><small>gói</small></th><th>Đặt ngày mai<br><small>gói</small></th></tr></thead><tbody>` +
+    ds.map(x => `<tr class="${x.muc === 'do' ? 'tkDo' : x.muc === 'vang' ? 'tkVang' : ''}"><td class="sp" title="${x.ten}"><span style="display:flex;gap:4px;align-items:flex-start">${x.muc ? ICON(x.muc === 'do' ? '#d32f2f' : '#f2b600') : ''}<span><span class="tn">${gon(x.ten)}</span><span class="ma">${x.ma} · ${x.q}c/gói</span></span></span></td>` +
+      `<td class="cTon">${fmt(x.ton)}</td><td>${n1(x.caSau)}</td><td>${n1(x.denMai)}</td><td class="small">${x.donMai ? x.donMai + (x.donCa ? ` <span title="giao trong ca sau">(${x.donCa} ca sau)</span>` : '') : ''}</td><td class="dat">${x.datNgay || ''}</td><td class="dat">${x.datMai || ''}</td></tr>`).join('') + '</tbody>';
+}
+
+/* ---------- ĐƠN HÀNG LỚN BÁNH NÓNG (mẫu dọc) ---------- */
+const DH_NHOM = [
+  ['Ngày', '#e6609f', [['ngay', 'Ngày', 'date']]],
+  ['Thông tin giao hàng', '#6aa84f', [['gioNhan', 'Thời gian nhận hàng', 'time'], ['ptGiao', 'Phương thức giao hàng', ['Khách đến lấy', 'Cửa hàng giao', 'Ship ngoài']], ['phiGiao', 'Chi phí giao hàng (đ)', 'number']]],
+  ['Sự kiện', '#4a7bd0', [['suKien', 'Sự kiện', 'text'], ['nguon', 'Nguồn', 'list']]],
+  ['Thông tin KH', '#4a7bd0', [['tenKH', 'Tên KH', 'text'], ['sdt', 'SĐT', 'tel'], ['diaChi', 'Địa chỉ giao hàng', 'text'], ['xhd', 'XHĐ', ['Không', 'Có']]]],
+  'SP',
+  ['Phương thức hấp', '#7e6bb8', [['gioHap', 'Thời gian hấp (24h)', 'time'], ['gioXong', 'Thời gian hoàn tất (24h)', 'time'], ['soTu', 'Số lượng tủ cần hấp', 'number'], ['loaiTu', 'Loại tủ', ['', 'Tủ lớn', 'Tủ nhỏ']], ['nhanSu', 'Nhân sự', 'list']]],
+  ['Đặt cọc', '#f08a00', [['cocTM', 'Tiền mặt (đ)', 'number'], ['cocCK', 'Chuyển khoản (đ)', 'number']]],
+  ['Thanh toán', '#f08a00', [['ttTM', 'Tiền mặt (đ)', 'number'], ['ttCK', 'Chuyển khoản (đ)', 'number']]]];
+const DH_SP = [['ten', 'Tên sản phẩm', 'list'], ['gia', 'Giá (đ)', 'number'], ['sl', 'Số lượng', 'number'], ['dvt', 'ĐVT', ['Cái', 'Gói', 'Hộp', 'Thùng']],
+  ['luuMau', 'Lưu mẫu', 'text'], ['ccdc', 'Công cụ kèm theo', ['', 'Túi nilong', 'Túi giấy', 'Hộp giấy', 'Khay']], ['quyCach', 'Quy cách', 'list']];
+let DH = null, DH_DS = [];
+const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+const oNhap = (f, t, v, at) => Array.isArray(t) ? `<select ${at}>${t.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select>`
+  : `<input type="${t === 'list' ? 'text' : t}" ${t === 'list' ? `list="dl_${f}"` : ''} ${t === 'number' ? 'inputmode="numeric"' : ''} value="${esc(v)}" ${at}>`;
+function veDon() {
+  let h = '';
+  DH_NHOM.forEach(g => {
+    if (g === 'SP') { DH.sp.forEach((p, i) => DH_SP.forEach(([f, lb, t], k) => h += `<tr>${k ? '' : `<td class="nh" rowspan="${DH_SP.length}" style="background:#e8b923">Sản phẩm ${i + 1}${DH.sp.length > 1 ? `<br><button class="b g" type="button" style="padding:2px 8px;margin-top:6px" onclick="DH=docDon();DH.sp.splice(${i},1);veDon()">✕</button>` : ''}</td>`}` +
+        `<td class="lb" style="background:#fff2cc">${lb}</td><td>${oNhap(f, t, p[f], `data-sp="${i}" data-f="${f}"`)}</td></tr>`));
+      h += `<tr><td colspan="3"><button class="b g" type="button" onclick="DH=docDon();DH.sp.push({dvt:'Cái'});veDon()">+ Thêm sản phẩm</button></td></tr>`; return; }
+    const [ten, mau, ds] = g;
+    ds.forEach(([f, lb, t], k) => h += `<tr>${k ? '' : `<td class="nh" rowspan="${ds.length}" style="background:${mau}">${ten}</td>`}<td class="lb" style="background:${mau}22">${lb}</td><td>${oNhap(f, t, DH[f], `data-f="${f}"`)}</td></tr>`);
+  });
+  h += `<tr class="tong"><td colspan="2">Tổng giá trị đơn hàng (đ)</td><td><input type="number" inputmode="numeric" data-f="tong" value="${esc(DH.tong)}" id="dhTong"></td></tr>` +
+    `<tr class="tong"><td colspan="2">Còn phải thu (đ)</td><td id="dhCon"></td></tr>` +
+    `<tr class="tong"><td colspan="2">Hoàn thành</td><td><label style="flex-direction:row;gap:6px;color:#c00"><input type="checkbox" data-f="xong" style="width:22px;height:22px" ${DH.xong ? 'checked' : ''}> Đã giao xong</label></td></tr>`;
+  $('dhForm').innerHTML = h; $('dhTieuDe').textContent = DH.id ? `Sửa đơn — ${DH.tenKH || ''} ${DH.ngay ? dm(DH.ngay) : ''}` : 'Đơn mới'; $('dhXoa').hidden = !(DH.id && laQL()); tinhDon();
+}
+function docDon() {
+  const o = { id: DH.id, sp: DH.sp.map(() => ({})) };
+  $('dhForm').querySelectorAll('[data-f]').forEach(i => { const v = i.type === 'checkbox' ? (i.checked ? 'x' : '') : i.value.trim();
+    if (i.dataset.sp !== undefined) o.sp[+i.dataset.sp][i.dataset.f] = v; else o[i.dataset.f] = v; });
+  return o;
+}
+function tinhDon() { // Tổng tự tính = Σ giá × SL + phí giao (nhập tay vào ô Tổng thì lấy số nhập)
+  const o = docDon(), tu = o.sp.reduce((s, p) => s + (+p.gia || 0) * (+p.sl || 0), 0) + (+o.phiGiao || 0), tong = o.tong !== '' ? +o.tong : tu;
+  $('dhTong').placeholder = fmt(tu) + ' (tự tính)';
+  const con = tong - ['cocTM', 'cocCK', 'ttTM', 'ttCK'].reduce((s, f) => s + (+o[f] || 0), 0);
+  $('dhCon').innerHTML = `<span class="${con > 0 ? 'neg' : 'pos'}">${fmt(con)}</span>`;
+}
+async function taiDh() {
+  try { DH_DS = await run('getDonHang', $('dhThang').value); } catch (e) { return msg('msgDh', e.message, 'err'); }
+  const tongDon = o => o.tong !== '' && o.tong != null ? +o.tong : o.sp.reduce((s, p) => s + (+p.gia || 0) * (+p.sl || 0), 0) + (+o.phiGiao || 0);
+  const con = o => tongDon(o) - ['cocTM', 'cocCK', 'ttTM', 'ttCK'].reduce((s, f) => s + (+o[f] || 0), 0);
+  const ds = DH_DS.slice().sort((a, b) => (a.ngay + a.gioNhan).localeCompare(b.ngay + b.gioNhan));
+  $('dhDs').innerHTML = !ds.length ? '<tr><td class="small">Tháng này chưa có đơn hàng lớn.</td></tr>' :
+    '<thead><tr><th>Ngày · giờ nhận</th><th>Khách</th><th>Sản phẩm</th><th>Hấp</th><th>Tổng (đ)</th><th>Còn thu</th><th></th></tr></thead><tbody>' +
+    ds.map(o => `<tr class="${o.xong ? 'xong' : o.ngay >= today() ? 'sap' : ''}"><td>${THU7(o.ngay)} ${dm(o.ngay)} · <b>${o.gioNhan || ''}</b></td><td style="text-align:left">${esc(o.tenKH)}<div class="small">${esc(o.sdt)} · ${esc(o.ptGiao)}</div></td>` +
+      `<td style="text-align:left;white-space:normal;min-width:140px">${o.sp.map(p => `${esc(p.ten)} × ${p.sl || 0} ${p.dvt || ''}`).join('<br>')}</td><td>${o.gioHap || ''}${o.nhanSu ? '<div class="small">' + esc(o.nhanSu) + '</div>' : ''}</td>` +
+      `<td>${fmt(tongDon(o))}</td><td class="${con(o) > 0 ? 'neg' : 'pos'}">${fmt(con(o))}</td><td>${o.xong ? '✓ Xong' : ''} <button class="b g" style="padding:3px 8px" onclick="suaDon('${o.id}')">✏</button></td></tr>`).join('') +
+    `</tbody><tfoot><tr><td colspan="4">${ds.length} đơn · ${ds.filter(o => o.xong).length} đã xong</td><td>${fmt(ds.reduce((s, o) => s + tongDon(o), 0))}</td><td>${fmt(ds.reduce((s, o) => s + con(o), 0))}</td><td></td></tr></tfoot>`;
+}
+const donMoi = () => { DH = { ngay: today(), ptGiao: 'Khách đến lấy', xhd: 'Không', sp: [{ dvt: 'Cái' }] }; veDon(); };
+function suaDon(id) { DH = JSON.parse(JSON.stringify(DH_DS.find(o => o.id === id))); if (!DH.sp.length) DH.sp = [{ dvt: 'Cái' }]; veDon(); $('dhTieuDe').scrollIntoView(); }
+async function luuDon() {
+  const o = docDon(); o.sp = o.sp.filter(p => p.ten || p.sl);
+  // gắn mã SP + quy ra cái để tab Tồn kho tính: Cái = 1, Gói = cái/gói, Thùng = cái/gói × gói/thùng
+  const ngoai = [];
+  o.sp.forEach(p => { const s = INIT.sp.find(x => gon(x.ten) === p.ten), h = { 'Cái': 1, 'Gói': s && s.caiGoi, 'Thùng': s && s.caiGoi * s.goiThung }[p.dvt];
+    p.ma = s ? s.ma : ''; p.cai = s && h ? (+p.sl || 0) * h : ''; if (p.ten && !p.cai) ngoai.push(`${p.ten}${s ? ' (ĐVT ' + p.dvt + ')' : ''}`); });
+  if (ngoai.length && !confirm(`Không tính vào Tồn kho được: ${ngoai.join(', ')} — SP chưa chọn từ danh sách, hoặc ĐVT Hộp chưa quy ra cái được.\nVẫn lưu?`)) return;
+  try { await run('saveDonHang', o); toast(); msg('msgDh', `Đã lưu đơn ${o.tenKH} ${dm(o.ngay)}.`, 'ok');
+    if ($('dhThang').value !== o.ngay.slice(0, 7)) $('dhThang').value = o.ngay.slice(0, 7); await taiDh(); donMoi(); taiNhac(); }
+  catch (e) { msg('msgDh', e.message, 'err'); }
+}
+async function xoaDon() {
+  if (!DH.id || !confirm(`Xóa đơn ${DH.tenKH || ''}?`)) return;
+  try { await run('xoaDonHang', DH.id); toast('✓ Đã xóa'); await taiDh(); donMoi(); } catch (e) { msg('msgDh', e.message, 'err'); }
+}
+
+/* ---------- NHẮC HẸN: popup khi đang mở app — 5' trước ca, 10' trước giờ hấp / giờ nhận đơn lớn ---------- */
+let NHAC = null, NHAC_HANG = [], NHAC_TAI = 0;
+const phutVN = () => { const d = new Date(Date.now() + 7 * 3600e3); return [d.toISOString().slice(0, 10), d.getUTCHours() * 60 + d.getUTCMinutes()]; };
+const phut = t => t ? +t.slice(0, 2) * 60 + +t.slice(3, 5) : null;
+const daNhac = k => { try { return !!localStorage.getItem('nhac|' + k); } catch (e) { return !!(window.NHAC_DA || {})[k]; } };
+const ghiNhac = k => { try { localStorage.setItem('nhac|' + k, '1'); } catch (e) { (window.NHAC_DA = window.NHAC_DA || {})[k] = 1; } };
+async function taiNhac() { try { NHAC = await run('getNhac'); NHAC_TAI = Date.now(); } catch (e) {} }
+async function kiemNhac() {
+  const [ngay, bay] = phutVN();
+  if (!NHAC || NHAC.ngay !== ngay || Date.now() - NHAC_TAI > 30 * 6e4) await taiNhac(); // tải lại mỗi 30' và khi qua ngày mới
+  if (!NHAC || NHAC.ngay !== ngay) return;
+  const hop = (k, moc, truoc) => moc !== null && bay >= moc - truoc && bay < moc && !daNhac(ngay + '|' + k);
+  NHAC.ca.forEach(x => { const c = INIT.ca.find(y => y.ten === x.ca); if (!c || !hop('ca|' + x.ca, phut(c.bd), 5)) return;
+    NHAC_HANG.push({ k: ngay + '|ca|' + x.ca, ca: c.ten, td: `⏰ ${phut(c.bd) - bay}' nữa vào ${c.ten} (${gh(c.bd)}–${gh(c.kt)})`,
+      nd: `<b>${x.nv.join(', ')}</b> — check in:<ul><li>Đếm lại tồn + xác nhận tồn ca trước</li><li>Đếm tiền thối nhận ca</li><li>Kiểm tra tủ hấp</li></ul>` }); });
+  NHAC.don.forEach(o => {
+    if (hop('hap|' + o.id, phut(o.gioHap), 10)) NHAC_HANG.push({ k: ngay + '|hap|' + o.id, td: `🔥 ${phut(o.gioHap) - bay}' nữa hấp đơn lớn — ${esc(o.tenKH)}`,
+      nd: `Hấp lúc <b>${o.gioHap}</b> · giao ${o.gioNhan || '?'}<br>${esc(o.sp)}${o.soTu ? `<br>${o.soTu} ${esc(o.loaiTu || 'tủ')}` : ''}${o.nhanSu ? `<br>Nhân sự: <b>${esc(o.nhanSu)}</b>` : ''}` });
+    if (hop('nhan|' + o.id, phut(o.gioNhan), 10)) NHAC_HANG.push({ k: ngay + '|nhan|' + o.id, td: `📦 ${phut(o.gioNhan) - bay}' nữa giao đơn lớn — ${esc(o.tenKH)}`,
+      nd: `Giờ nhận <b>${o.gioNhan}</b> · ${esc(o.ptGiao || '')}<br>${esc(o.sp)}<br>Kiểm lại số lượng, công cụ kèm theo, thu tiền còn lại.` });
+  });
+  NHAC_HANG.forEach(x => ghiNhac(x.k)); // đánh dấu đã nhắc → không nhắc lại (kể cả mở lại app)
+  hienNhac();
+}
+function hienNhac() {
+  if (!$('nhac').hidden || !NHAC_HANG.length) return;
+  const x = NHAC_HANG.shift(); $('nhacTieuDe').textContent = x.td; $('nhacNoiDung').innerHTML = x.nd; $('nhacMo').hidden = !x.ca; $('nhac').hidden = false;
+  $('nhacMo').onclick = () => { $('nhac').hidden = true; $('ngay').value = today(); $('ngay').onchange().then(() => { if ([...$('ca').options].some(o => o.value === x.ca)) { $('ca').value = x.ca; $('ca').onchange(); } });
+    document.querySelector('nav button[data-t=nhap]').click(); hienNhac(); };
+  try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch (e) {}
+}
+
+/* ---------- PHÂN TÍCH ---------- */
+async function taiPt() {
+  const n = $('ptNgay').value, k = $('ptKieu').value, xep = $('ptXep').value;
+  let tu = n, den = n;
+  if (k === 'w') { const w = (new Date(n + 'T12:00:00').getDay() + 6) % 7; tu = dAdd(n, -w); den = dAdd(tu, 6); }
+  if (k === 'm') { tu = n.slice(0, 8) + '01'; den = dAdd(dAdd(tu, 32).slice(0, 8) + '01', -1); }
+  if (den > today()) den = today();
+  let d; try { d = await run('getPhanTich', tu, den); } catch (e) { return msg('msgPt', e.message, 'err'); }
+  $('msgPt').className = 'msg';
+  const ten = x => gon((INIT.sp.find(s => s.ma === x.ma) || x).ten), ban = d.sp.filter(x => x.sl > 0).sort((a, b) => b[xep] - a[xep]);
+  const tong = ban.reduce((s, x) => s + x[xep], 0), max = ban.length ? ban[0][xep] : 1;
+  $('ptInfo').textContent = `Từ ${dm(tu)} đến ${dm(den)} · ${ban.length} SP có bán · Tổng ${fmt(ban.reduce((s, x) => s + x.sl, 0))} cái · Doanh số ${fmt(ban.reduce((s, x) => s + x.ds, 0))}đ`;
+  $('ptTop').innerHTML = '<thead><tr><th>#</th><th>Sản phẩm</th><th class="cBan">Bán (cái)</th><th>Doanh số (đ)</th><th>Tỷ trọng</th><th style="width:30%"></th></tr></thead><tbody>' +
+    (ban.map((x, i) => `<tr><td>${i + 1}</td><td style="text-align:left">${ten(x)}<div class="small">${x.ma}</div></td><td class="cBan">${fmt(x.sl)}</td><td>${fmt(x.ds)}</td><td>${tong ? (x[xep] / tong * 100).toFixed(1) : 0}%</td><td><div class="bar" style="width:${(x[xep] / max * 100).toFixed(0)}%"></div></td></tr>`).join('') ||
+      '<tr><td colspan="6" class="small">Chưa có số liệu bán trong khoảng này.</td></tr>') + '</tbody>';
+  // Cảnh báo tồn: tồn mới nhất so với bán trung bình/ngày 7 ngày gần nhất
+  const ton = d.sp.filter(x => x.ton != null && x.b7 > 0).map(x => ({ ...x, tb: x.b7 / 7, du: x.ton / (x.b7 / 7) })).filter(x => x.du < 2).sort((a, b) => a.du - b.du);
+  $('ptTon').innerHTML = !ton.length ? '<tr><td class="small">✓ Tồn kho đủ bán ít nhất 2 ngày cho mọi SP (theo bán TB 7 ngày).</td></tr>' :
+    '<thead><tr><th>Sản phẩm</th><th class="cTon">Tồn hiện tại</th><th>Bán TB/ngày</th><th>Đủ bán</th></tr></thead><tbody>' +
+    ton.map(x => `<tr class="${x.du < 1 ? 'canhBao' : 'sapHet'}"><td style="text-align:left">${ten(x)}<div class="small">${x.ma} · kiểm lúc ${x.moc.slice(8, 10)}/${x.moc.slice(5, 7)} ${x.moc.slice(11)}</div></td><td><b>${fmt(x.ton)}</b></td><td>${x.tb.toFixed(1)}</td><td><b>${x.du < 1 ? '⚠ dưới 1 ngày' : x.du.toFixed(1) + ' ngày'}</b></td></tr>`).join('') + '</tbody>';
+  // Bán chạy nhất từng ngày (tuần / tháng)
+  $('ptH3').textContent = k === 'd' ? '' : 'Bán chạy nhất từng ngày';
+  const ngay = {}; d.theoNgay.forEach(x => { const g = ngay[x.ngay] = ngay[x.ngay] || { tong: 0, top: null }; g.tong += x.sl; if (!g.top || x.sl > g.top.sl) g.top = x; });
+  $('ptNgayTbl').innerHTML = k === 'd' ? '' : '<tr><th>Ngày</th><th>SP bán chạy nhất</th><th class="cBan">SL</th><th>Tổng bán ngày</th></tr>' +
+    (Object.keys(ngay).sort().map(n => { const g = ngay[n]; return `<tr><td>${dm(n)}</td><td style="text-align:left">${ten(g.top)}</td><td class="cBan">${fmt(g.top.sl)}</td><td>${fmt(g.tong)}</td></tr>`; }).join('') ||
+      '<tr><td colspan="4" class="small">Chưa có số liệu.</td></tr>');
+}
+
+/* ---------- TIỀN CHI ---------- */
+async function taiChi() {
+  try {
+    const ds = await run('getChi', $('chiThang').value), ngay = $('chiNgay').value;
+    const tongNgay = ds.filter(x => x.ngay === ngay).reduce((s, x) => s + x.tien, 0), tongThang = ds.reduce((s, x) => s + x.tien, 0);
+    $('kpiChi').innerHTML = `<div>Chi ngày ${dm(ngay)}<b>${fmt(tongNgay)}</b></div><div>Chi cả tháng<b>${fmt(tongThang)}</b></div><div>Số khoản<b>${ds.length}</b></div>`;
+    const rows = ds.slice().sort((a, b) => (b.ngay + b.id).localeCompare(a.ngay + a.id));
+    $('chiTbl').innerHTML = '<thead><tr><th>Ngày chi</th><th>Tên NV</th><th>Mục chi</th><th>Số tiền</th><th>Diễn giải</th><th></th></tr></thead><tbody>' +
+      (rows.map(x => `<tr><td>${dm(x.ngay)}</td><td>${tagNV(x.nv)}</td><td>${x.muc}${x.td ? ' · <b>' + x.td + '</b>' : ''}</td><td><b>${fmt(x.tien)}</b></td><td style="white-space:normal;text-align:left;min-width:120px">${x.dg || ''}</td>` +
+        `<td>${laQL() ? `<button class="b g" style="padding:3px 8px;font-size:12px" onclick="xoaDongChi('${x.id}')">Xóa</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="small">Tháng này chưa có khoản chi.</td></tr>') + '</tbody>';
+  } catch (e) { msg('msgChi', e.message, 'err'); }
+}
+async function themChi() {
+  const x = { nv: $('chiNv').value, ngay: $('chiNgay').value, muc: $('chiMuc').value, td: $('chiTd').value.trim(), tien: +$('chiTien').value, dg: $('chiDg').value.trim() };
+  try {
+    await run('addChi', x); toast(); msg('msgChi', `Đã ghi ${fmt(x.tien)}k — ${x.muc}${x.td ? ' · ' + x.td : ''} (${x.nv}, ${dm(x.ngay)}).`, 'ok');
+    $('chiMuc').value = $('chiTien').value = $('chiDg').value = $('chiTd').value = ''; $('lbChiTd').hidden = true;
+    if ($('chiThang').value !== x.ngay.slice(0, 7)) $('chiThang').value = x.ngay.slice(0, 7);
+    taiChi(); if (x.ngay <= $('ngay').value) { TONG_CHI += x.ngay === $('ngay').value ? x.tien : 0; CHI_CA.push({ muc: x.td || x.muc, tien: x.tien, ngay: x.ngay }); $('chi').value = (+$('chi').value || 0) + x.tien; calcChot(tienFileCa()); }
+  } catch (e) { msg('msgChi', e.message, 'err'); }
+}
+async function xoaDongChi(id) {
+  try { await run('xoaChi', '', id); toast('✓ Đã xóa'); msg('msgChi', 'Đã xóa khoản chi.', 'ok'); taiChi(); taiCa(); }
+  catch (e) { msg('msgChi', e.message, 'err'); }
+}
+
+/* ---------- KHỞI ĐỘNG ---------- */
+async function boot() {
+  if (!TOK) { $('login').hidden = false; return; }
+  try { INIT = await run('getInit', today()); } // 1 lượt gọi: danh mục + phiếu ca đầu của hôm nay
+  catch (e) { // lỗi máy chủ (vd chưa cấp quyền sau khi cập nhật code) → hiện rõ thay vì màn hình đứng im
+    if (!/đăng nhập/i.test(e.message || e)) { $('login').hidden = false; msg('msgLogin', 'Không mở được app: ' + (e.message || e) + ' — báo Quản lý.', 'err'); }
+    return; }
+  ME = INIT.user; lsSet('kt_me', JSON.stringify(ME)); lsSet('kt_tok', TOK);
+  $('userBox').innerHTML = `${ME.ten}<br>${ME.role}`; $('navUser').textContent = `${ME.ten} · ${ME.role}`;
+  veCa(); $('ca').value = (INIT.ca.find(c => !c.phu) || INIT.ca[0]).ten; // khớp phiếu ca đầu đã tải sẵn
+  $('nv').innerHTML = '<option value="">-- NV --</option>' + conLam().map(n => `<option value="${n.ten}">${n.ten}</option>`).join('');
+  $('thieuMa').textContent = INIT.nv.length ? '' : 'Chưa có nhân viên trong tab NHANVIEN.';
+  const t = today(); $('ngay').value = t; $('ngayBC').value = t; $('thang').value = t.slice(0, 7);
+  drawGrid(); drawTo();
+  if (INIT.thieuMa.length) $('thieuMa').textContent += `${INIT.thieuMa.length} SP tạm ngưng kinh doanh (chưa có mã): ${INIT.thieuMa.join('; ')}`;
+  if (!INIT.hasKey) $('btnDoc').disabled = true, $('btnDoc').textContent = 'Chưa có GEMINI_KEY';
+  $('btnDoc').onclick = docAnh; $('btnLuu').onclick = luu;
+  $('btnChot').onclick = luuChot; $('tqNgay').value = t; $('tqNgay').onchange = taiTongQuan;
+  ON_TAB.chot = () => { $('tqNgay').value = $('ngay').value; taiTongQuan(); }; $('btnBC').onclick = baoCao;
+  // Thanh Ngày · Ca · NV dùng chung: đổi là tải lại phiếu + đưa ngày sang các tab khác + tải lại tab đang mở
+  $('ngay').onchange = async () => { try { await locNgay(); } catch (e) { NGAY_NV = null; veCa(); } $('ca').onchange(); };
+  $('ca').onchange = async () => {
+    const n = $('ngay').value; if (!n) return;
+    $('tqNgay').value = $('ngayBC').value = $('chiNgay').value = $('lTuan').value = $('ptNgay').value = n;
+    $('thang').value = $('chiThang').value = $('lgThang').value = $('pnThang').value = $('ovThang').value = $('dhThang').value = n.slice(0, 7);
+    await taiCa(); const t = document.querySelector('nav button.on'); if (t && ON_TAB[t.dataset.t]) ON_TAB[t.dataset.t]();
+  };
+  $('btnRf').onclick = async () => { const b = $('btnRf'); b.disabled = true; try { await $('ngay').onchange(); toast('Đã làm mới'); } finally { b.disabled = false; } }; // ⟳ tải lại số liệu ngày/ca/tab đang mở
+  $('posFile').onchange = docPos;
+  $('chot').oninput = e => { calcChot(tienFileCa()); if (e.target.id !== 'tqNgay') baoNhap('chot'); };
+  // mỗi phút cập nhật "ai đang nhập" khi đang mở Kiểm tồn ca / Chốt tiền
+  setInterval(() => { if (document.visibilityState === 'visible' && ($('nhap').classList.contains('on') || $('chot').classList.contains('on'))) baoNhap(''); }, 6e4);
+  const nvOpt = '<option value="">-- chọn --</option>' + conLam().map(n => `<option value="${n.ten}">${n.ten}${n.tt ? ' (' + n.tt + ')' : ''}</option>`).join('');
+  $('dkNv').innerHTML = nvOpt; $('sapNguoi').innerHTML = nvOpt; $('chiNv').innerHTML = nvOpt;
+  $('chiNgay').value = t; $('chiThang').value = t.slice(0, 7);
+  $('btnChi').onclick = themChi; $('chiMuc').onchange = () => { $('lbChiTd').hidden = $('chiMuc').value !== 'Tiền khác'; if (!$('lbChiTd').hidden) $('chiTd').focus(); }; $('chiThang').onchange = $('chiNgay').onchange = taiChi;
+  ON_TAB.tienchi = taiChi;
+  const ql = conLam().find(n => n.ten.toLowerCase().startsWith('diệp')); if (ql) $('sapNguoi').value = ql.ten; // mặc định Diệp QL
+  $('lTuan').value = t; $('lgThang').value = t.slice(0, 7);
+  $('lTuan').onchange = taiLich; $('dkNv').onchange = () => LICH && veDk();
+  $('lTruoc').onclick = () => { $('lTuan').value = dAdd($('lTuan').value, -7); taiLich(); };
+  $('lSau').onclick = () => { $('lTuan').value = dAdd($('lTuan').value, 7); taiLich(); };
+  $('sapTbl').onchange = e => { if (e.target.tagName === 'SELECT') markReg(e.target); tongSap(); };
+  $('btnDk').onclick = luuDk; $('btnSap').onclick = luuSap; $('btnLg').onclick = tinhLuong;
+  ON_TAB.lich = taiLich; ON_TAB.luong = tinhLuong; ON_TAB.bc = baoCao;
+  $('pnThang').value = t.slice(0, 7); $('pnThang').onchange = taiPnl; $('pnThem').onclick = () => themCp(); $('pnLuu').onclick = luuPnl;
+  $('pnCp').oninput = calcPnl; ON_TAB.pnl = taiPnl;
+  $('ovThang').value = t.slice(0, 7); $('ovThang').onchange = taiTq; ON_TAB.tq = taiTq;
+  ON_TAB.tk = taiTk;
+  $('dl_ten').innerHTML = INIT.sp.map(s => `<option value="${esc(gon(s.ten))}">`).join(''); $('dl_nhanSu').innerHTML = conLam().map(n => `<option value="${esc(n.ten)}">`).join('');
+  $('dhThang').value = t.slice(0, 7); $('dhThang').onchange = taiDh; $('dhMoi').onclick = donMoi; $('dhLuu').onclick = luuDon; $('dhXoa').onclick = xoaDon; ON_TAB.dh = taiDh; donMoi();
+  $('dhForm').oninput = e => { const i = e.target; // chọn SP có trong danh mục → tự điền giá bán lẻ/cái
+    if (i.dataset.f === 'ten') { const sp = INIT.sp.find(s => gon(s.ten) === i.value), g = $('dhForm').querySelector(`[data-sp="${i.dataset.sp}"][data-f="gia"]`); if (sp && g && !g.value) g.value = sp.giaCai; }
+    tinhDon(); };
+  $('ptNgay').value = t; $('ptNgay').onchange = $('ptKieu').onchange = $('ptXep').onchange = taiPt; ON_TAB.pt = taiPt;
+  // Theo vai trò (đặt cả 2 chiều vì có thể đăng xuất rồi đăng nhập tài khoản khác)
+  document.querySelector('nav button[data-t=pnl]').hidden = !laQL(); // Tổng quan: ai cũng xem (NV chỉ thấy số của mình — server lọc)
+  $('posCard').hidden = !laQL(); $('sapSec').hidden = !laQL(); $('lichToi').hidden = laQL();
+  ['nv', 'dkNv', 'chiNv'].forEach(id => { const s = $(id); s.disabled = !laQL();
+    if (!laQL()) { if (![...s.options].some(o => o.value === ME.ten)) s.add(new Option(ME.ten, ME.ten)); s.value = ME.ten; } });
+  document.querySelector('nav button[data-t=nhap]').click(); guiVo(); // mở app vào thẳng Kiểm tồn ca; nhắc vỏ app lưu phiên
+  taiCa(INIT.shift);
+  $('nhacOk').onclick = () => { $('nhac').hidden = true; hienNhac(); };
+  kiemNhac(); setInterval(kiemNhac, 3e4); // kiểm nhắc hẹn mỗi 30 giây
+}
+boot();
+</script>
+<script>
+  if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(window.API_URL)) document.body.innerHTML = '<p style="padding:24px">Chưa gắn link webapp: mở app/index.html, dán link Apps Script (kết thúc bằng /exec) vào dòng API_URL.</p>';
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
