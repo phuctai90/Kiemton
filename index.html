@@ -66,7 +66,10 @@
   td.br, td.cBan { background:#fff1cc; font-weight:700; color:#7a4a00; } th.cBan { background:#ffe4a3; color:#7a4a00; }
   td.cTon { background:#dff3f7; font-weight:700; color:#0b5d6e; } th.cTon { background:#c4e8f0; color:#0b5d6e; }
   tr.mo td, tr.mo td.sp { background:#fff59d !important; } /* AI đọc không rõ */
-  #grid tr.an { display:none; } /* mã tồn 0 suốt 7 ngày */
+  #grid tr.an, #grid tr.loc { display:none; } #grid.tim tr.an:not(.loc) { display:table-row; } /* ẩn mã tồn 0 / lọc theo ô tìm */
+  #timSP { width:100%; padding:9px 34px 9px 10px; font-size:16px; border:2px solid var(--red); border-radius:8px; } .timBox { position:relative; margin:6px 0; }
+  .timBox button { position:absolute; right:4px; top:50%; transform:translateY(-50%); border:0; background:none; font-size:20px; color:#888; padding:4px 8px; }
+  .chuNhom { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0 6px; } .chuNhom span { font-size:11px; padding:2px 6px; border-radius:10px; border-left:4px solid; } /* mã tồn 0 suốt 7 ngày */
   tr.am td, tr.am td.sp { background:#ffd6d6 !important; } tr.am td.br { color:#b00000; } /* số âm */
   td input.lechTD { background:#ffd8a8 !important; border:2px solid #f08a00; font-weight:700; }
   td input[readonly] { background:#eef5f0; color:#333; border-color:#cfe5d6; } /* tồn đầu đã khóa sau xác nhận */
@@ -214,6 +217,8 @@
   <div class="row"><button class="b" id="btnLuu">💾 Lưu thay đổi</button></div>
   <div class="kpi" id="kpiNhap"></div>
   <div class="msg" id="amNhap"></div>
+  <div class="timBox"><input id="timSP" type="text" placeholder="🔍 Tìm tên hoặc mã SP (vd: 2 cut, ga pm, 5000159)" autocomplete="off" oninput="timSP()" onkeydown="if(event.key==='Enter'){event.preventDefault();timSP(true)}"><button type="button" onclick="$('timSP').value='';timSP();$('timSP').focus()" aria-label="Xóa tìm">×</button></div>
+  <div class="chuNhom" id="chuNhom"></div>
   <div class="tw dai" id="gridWrap"><table id="grid"></table></div>
   <div id="gridHead" hidden></div>
 </section>
@@ -472,12 +477,26 @@ $('btnLogout').onclick = () => { moMenu(false); dangXuat('Đã đăng xuất.');
 $('btnLogin').onclick = dangNhap; $('lgTen').value = lsGet('kt_ten') || ''; // nhớ tên đăng nhập $('lgMk').onkeydown = e => { if (e.key === 'Enter') dangNhap(); };
 
 /* ---------- KIỂM TỒN CA ---------- */
+// Màu theo nhóm SP (nền ô tên SP, viền trái) — nhóm lấy từ Code.gs NHOM_SP
+const MAU_NHOM = { 'Bánh mặn': ['#fde2e2', '#d64545'], 'Bánh chay': ['#e3f5d8', '#4c9a2a'], 'Không nhân': ['#efefef', '#8a8a8a'], 'Bánh ngọt': ['#fff3c4', '#d4a017'],
+  'Tạo hình': ['#fbe3f3', '#c2408f'], 'Dimsum': ['#ffe6d1', '#e07b24'], 'Xôi + Giò': ['#f3e6d8', '#9a6b3f'], 'Chiên/Kẹp': ['#e0ecff', '#2f6fd1'],
+  'Nướng + Trading': ['#efe5ff', '#7b4fc8'], 'Mùa vụ': ['#d9f4f4', '#1f9a9a'], 'Khác': ['#ffffff', '#cccccc'] };
+const khongDau = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase();
+/** Ô tìm SP: gõ tên (có/không dấu, vài chữ) hoặc mã → chỉ hiện dòng khớp; Enter → nhảy vào ô Gói dòng đầu tiên. */
+function timSP(enter) {
+  const q = khongDau($('timSP').value).trim().split(/\s+/).filter(Boolean); let dau = null;
+  $('grid').classList.toggle('tim', q.length > 0);
+  $('grid').querySelectorAll('tbody tr').forEach(tr => { const ok = q.every(w => tr.dataset.tim.includes(w)); tr.classList.toggle('loc', !ok); if (ok && !dau) dau = tr; });
+  if (enter && dau && q.length) { const i = dau.querySelector('input[data-f="chan"]'); if (i) { i.focus(); i.select(); } }
+}
 function drawGrid() {
   const h = '<thead><tr><th>Sản phẩm</th>' + FN.map((x, i) => `<th class="${FCLS[F[i]] || ''}">${x}</th>`).join('') + '<th>Tồn cuối<br><small>cái</small></th><th class="cBan">Bán ra offline<br><small>cái</small></th><th class="cPos">POS OUT<br><small>cái</small></th><th>Lệch POS<br><small>off+onl−POS</small></th></tr></thead>';
-  const b = INIT.sp.map(s => `<tr data-ma="${s.ma}" data-q="${s.caiGoi}">` + spCell(s.ten, s.ma, ` · <span class="q">${s.caiGoi}c/gói</span>`) +
+  const b = INIT.sp.map(s => `<tr data-ma="${s.ma}" data-q="${s.caiGoi}" data-tim="${khongDau((s.tenPhieu || '') + ' ' + s.ten + ' ' + s.ma + ' ' + (s.nhom || ''))}">` + spCell(s.ten, s.ma, ` · <span class="q">${s.caiGoi}c/gói</span>`).replace('<td class="sp"', `<td class="sp" style="background:${(MAU_NHOM[s.nhom] || MAU_NHOM['Khác'])[0]};border-left:5px solid ${(MAU_NHOM[s.nhom] || MAU_NHOM['Khác'])[1]}"`) +
     F.map(f => `<td><input type="number" inputmode="numeric" data-f="${f}"></td>`).join('') + '<td class="tc"></td><td class="br"></td><td class="po cPos"></td><td class="lp"></td></tr>').join('');
   $('grid').innerHTML = h + '<tbody>' + b + '</tbody><tfoot><tr><td>Tổng</td>' + F.map(f => `<td id="sum_${f}"></td>`).join('') + '<td id="sum_tc"></td><td id="sum_br"></td><td id="sum_po"></td><td id="sum_lp"></td></tr></tfoot>';
   $('grid').oninput = e => { const tr = e.target.closest('tr'); if (tr) tr.classList.remove('mo'); calc(); if (e.target.dataset.f === 'tonDau') veXacNhan(); baoNhap('kt'); }; // sửa dòng → bỏ tô vàng
+  const co = [...new Set(INIT.sp.map(x => x.nhom || 'Khác'))]; // chú thích màu nhóm đang có trên bảng
+  $('chuNhom').innerHTML = co.map(n => `<span style="background:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[0]};border-color:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[1]}">${n}</span>`).join('');
   $('gridWrap').onscroll = dinhTieuDe; $('gridHead').dataset.v = '';
 }
 /** Khóa tiêu đề: khi dòng tiêu đề bảng kiểm tồn trôi khỏi màn hình → hiện bản sao dính dưới thanh tiêu đề app,
