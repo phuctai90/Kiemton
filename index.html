@@ -81,7 +81,16 @@
   th:first-child { z-index:3; background:var(--head); }
   td input { width:50px; padding:4px; font-size:14px; text-align:center; }
   .ma { color:#888; font-size:11px; display:block; }
-  tr.chua td { background:#fff4e0; } tr.ocr td:first-child { border-left:3px solid var(--ok); }
+  tr.chua td { background:#fff4e0; }
+  /* Bảng kiểm tồn: nền theo nhóm SP tràn full dòng; cảnh báo = icon trước tên SP (không tô nền) */
+  #grid tbody td { background:var(--nen, #fff); } #grid tbody td.sp { border-left:5px solid var(--vien, #ccc); }
+  #grid tbody tr.am td, #grid tbody tr.mo td, #grid tbody tr.chua td { background-color:var(--nen, #fff) !important; }
+  #grid tr.chua td.sp .tn::before { content:'⏳ '; } #grid tr.mo td.sp .tn::before { content:'❓ '; } #grid tr.am td.sp .tn::before { content:'⛔ '; }
+  #grid tr.ocr td.sp .tn::after { content:' 📷'; } #grid tr:has(input.lechTD) td.sp .tn::after { content:' ✏️'; }
+  #grid tr.am td.br { color:#b00000; } #grid td input.lechTD { background:#fff !important; border:2px solid #f08a00; }
+  /* Dấu thập: ô đang chọn/di chuột → tô dòng + cột */
+  #grid tbody tr.hl td, #grid .hlc { background-image:linear-gradient(rgba(30,100,220,.2), rgba(30,100,220,.2)) !important; }
+  #grid tr.hl td.hlc { box-shadow:inset 0 0 0 2px #1e64dc; } #grid tr.hl input, #grid td.hlc input { background:#fffbe6; }
   .neg { color:#a00; font-weight:600; } .pos { color:var(--ok); font-weight:600; }
   tfoot td { font-weight:700; background:var(--head); position:sticky; bottom:0; }
   .xn { border-left:4px solid var(--warn); } .xn.ok { border-left-color:var(--ok); } .xn.sai { border-left-color:#c33; }
@@ -489,14 +498,26 @@ function timSP(enter) {
   $('grid').querySelectorAll('tbody tr').forEach(tr => { const ok = q.every(w => tr.dataset.tim.includes(w)); tr.classList.toggle('loc', !ok); if (ok && !dau) dau = tr; });
   if (enter && dau && q.length) { const i = dau.querySelector('input[data-f="chan"]'); if (i) { i.focus(); i.select(); } }
 }
+let HL = null;
+function chuThap(td) { // tô dòng + cột của ô td (dấu thập) để nhập không nhầm dòng/cột
+  if (td === HL) return; HL = td; const g = $('grid');
+  g.querySelectorAll('tr.hl, .hlc').forEach(e => e.classList.remove('hl', 'hlc'));
+  if (!td || !td.closest('tbody')) return;
+  const i = td.cellIndex; td.parentElement.classList.add('hl');
+  [...g.rows].forEach(r => { const c = r.cells[i]; if (c) c.classList.add('hlc'); });
+}
 function drawGrid() {
   const h = '<thead><tr><th>Sản phẩm</th>' + FN.map((x, i) => `<th class="${FCLS[F[i]] || ''}">${x}</th>`).join('') + '<th>Tồn cuối<br><small>cái</small></th><th class="cBan">Bán ra offline<br><small>cái</small></th><th class="cPos">POS OUT<br><small>cái</small></th><th>Lệch POS<br><small>off+onl−POS</small></th></tr></thead>';
-  const b = INIT.sp.map(s => `<tr data-ma="${s.ma}" data-q="${s.caiGoi}" data-tim="${khongDau((s.tenPhieu || '') + ' ' + s.ten + ' ' + s.ma + ' ' + (s.nhom || ''))}">` + spCell(s.ten, s.ma, ` · <span class="q">${s.caiGoi}c/gói</span>`).replace('<td class="sp"', `<td class="sp" style="background:${(MAU_NHOM[s.nhom] || MAU_NHOM['Khác'])[0]};border-left:5px solid ${(MAU_NHOM[s.nhom] || MAU_NHOM['Khác'])[1]}"`) +
+  const b = INIT.sp.map(s => `<tr data-ma="${s.ma}" data-q="${s.caiGoi}" style="--nen:${(MAU_NHOM[s.nhom] || MAU_NHOM['Khác'])[0]};--vien:${(MAU_NHOM[s.nhom] || MAU_NHOM['Khác'])[1]}" data-tim="${khongDau((s.tenPhieu || '') + ' ' + s.ten + ' ' + s.ma + ' ' + (s.nhom || ''))}">` + spCell(s.ten, s.ma, ` · <span class="q">${s.caiGoi}c/gói</span>`) +
     F.map(f => `<td><input type="number" inputmode="numeric" data-f="${f}"></td>`).join('') + '<td class="tc"></td><td class="br"></td><td class="po cPos"></td><td class="lp"></td></tr>').join('');
   $('grid').innerHTML = h + '<tbody>' + b + '</tbody><tfoot><tr><td>Tổng</td>' + F.map(f => `<td id="sum_${f}"></td>`).join('') + '<td id="sum_tc"></td><td id="sum_br"></td><td id="sum_po"></td><td id="sum_lp"></td></tr></tfoot>';
   $('grid').oninput = e => { const tr = e.target.closest('tr'); if (tr) tr.classList.remove('mo'); calc(); if (e.target.dataset.f === 'tonDau') veXacNhan(); baoNhap('kt'); }; // sửa dòng → bỏ tô vàng
   const co = [...new Set(INIT.sp.map(x => x.nhom || 'Khác'))]; // chú thích màu nhóm đang có trên bảng
-  $('chuNhom').innerHTML = co.map(n => `<span style="background:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[0]};border-color:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[1]}">${n}</span>`).join('');
+  $('chuNhom').innerHTML = '<span style="border:0;padding:2px 0">⛔ số âm · ❓ AI đọc chưa chắc · ⏳ chưa đếm tồn cuối · ✏️ tồn đầu điều chỉnh · 📷 AI vừa điền</span>' + co.map(n => `<span style="background:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[0]};border-color:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[1]}">${n}</span>`).join('');
+  const g = $('grid'); // dấu thập theo ô đang nhập (focus) hoặc ô chuột đang trỏ
+  g.addEventListener('focusin', e => chuThap(e.target.closest('td')));
+  g.addEventListener('mouseover', e => { const td = e.target.closest('tbody td'); if (td) chuThap(td); });
+  g.addEventListener('mouseleave', () => chuThap(g.contains(document.activeElement) ? document.activeElement.closest('td') : null));
   $('gridWrap').onscroll = dinhTieuDe; $('gridHead').dataset.v = '';
 }
 /** Khóa tiêu đề: khi dòng tiêu đề bảng kiểm tồn trôi khỏi màn hình → hiện bản sao dính dưới thanh tiêu đề app,
@@ -545,7 +566,7 @@ function calc() {
   $('sum_po').textContent = POSINFO.coPos ? fmt(sPo) : ''; $('sum_lp').textContent = POSINFO.coPos ? fmt(sLp) : '';
   $('kpiNhap').innerHTML = `<div>Bán ra offline<b>${fmt(sum.br)} cái</b></div><div>DS offline<b>${fmt(ds)} đ</b></div>` +
     `<div>Bán online<b style="color:#d0338a">${fmt(sum.online)} cái</b></div><div>DS online<b style="color:#d0338a">${fmt(dsOn)} đ</b></div><div>Hủy<b class="neg">${fmt(sum.huy)}</b></div>`;
-  $('amNhap').innerHTML = dsAm.length ? `⚠ ${dsAm.length} SP có số âm (dòng đỏ) — kiểm tra lại: ${dsAm.join(', ')}` : ''; $('amNhap').className = dsAm.length ? 'msg on err' : 'msg';
+  $('amNhap').innerHTML = dsAm.length ? `⚠ ${dsAm.length} SP có số âm (dòng ⛔) — kiểm tra lại: ${dsAm.join(', ')}` : ''; $('amNhap').className = dsAm.length ? 'msg on err' : 'msg';
 }
 async function taiCa(d0) { // d0: phiếu đã tải sẵn lúc mở app (khỏi gọi server thêm 1 lần)
   ANH = ''; ANH_P = null; $('anh').value = '';
@@ -613,7 +634,7 @@ async function docAnh() {
     });
     const la = r.items.filter(x => !INIT.sp.some(s => s.ma === String(x.ma).trim()) || x.ghi_chu || x.ro === false);
     calc(); anHien(); // dòng AI vừa điền số → hiện lại
-    msg('msgNhap', `(${Math.round((Date.now() - t0) / 1000)} giây, AI ${r.giay} giây · ${r.model} · suy nghĩ ${r.muc}${r.lan > 1 ? ' · ' + r.lan + ' lần gọi' : ''}) Đọc được ${hit} mã SP (viền xanh). Dòng vàng = AI đọc không rõ, dòng đỏ = số âm — kiểm tra lại trước khi lưu.` +
+    msg('msgNhap', `(${Math.round((Date.now() - t0) / 1000)} giây, AI ${r.giay} giây · ${r.model} · suy nghĩ ${r.muc}${r.lan > 1 ? ' · ' + r.lan + ' lần gọi' : ''}) Đọc được ${hit} mã SP (dòng 📷). ❓ = AI đọc không rõ, ⛔ = số âm — kiểm tra lại trước khi lưu.` +
       (la.length ? ' Cần xem lại: ' + la.map(x => `${x.ma}${x.ghi_chu ? ' (' + x.ghi_chu + ')' : ''}`).join('; ') : ''), la.length ? 'warn' : 'ok');
   } catch (e) { clearInterval(dem); $('btnDoc').disabled = false; msg('msgNhap', e.message, 'err'); }
 }
@@ -625,7 +646,7 @@ function veXacNhan() { // tồn đầu tự lấy tồn cuối ca trước; NV c
   const lech = $('grid').querySelectorAll('input.lechTD').length;
   c.className = 'card xn ' + (lech ? 'sai' : 'ok');
   c.innerHTML = `<b>Tồn đầu = tồn cuối ca trước</b> — mốc ${TRUOC.ca} ${dm(TRUOC.ngay)} · ${Object.keys(TRUOC.map).length} SP, ${fmt(Object.values(TRUOC.map).reduce((a, b) => a + b, 0))} cái ${linkAnh()}<br>` +
-    (lech ? `<b class="neg">${lech} SP điều chỉnh</b> (ô cam) — khi Lưu, app ghi lại người điều chỉnh.` : '<span class="small">Đếm lại hàng đầu ca: lệch thì sửa thẳng ô <b>Tồn đầu</b>.</span>') +
+    (lech ? `<b class="neg">${lech} SP điều chỉnh</b> (dòng ✏️) — khi Lưu, app ghi lại người điều chỉnh.` : '<span class="small">Đếm lại hàng đầu ca: lệch thì sửa thẳng ô <b>Tồn đầu</b>.</span>') +
     (XN && XN.soLech ? ` <span class="small">· Lần lưu trước: ${XN.nv} điều chỉnh ${XN.soLech} SP</span>` : '');
 }
 async function luu() {
@@ -639,9 +660,9 @@ async function luu() {
   const ten = nvLuu('kt').toLowerCase(), moc = [...new Set((LICH_NGAY || []).filter(x => x.nv.toLowerCase() === ten).map(x => (INIT.ca.find(c => c.ten === x.ca) || {}).kt).filter(Boolean))];
   if (moc.length && !moc.includes(caSel().kt) && !confirm(`${nvLuu('kt')} được xếp ca kết thúc lúc ${moc.join(', ')}, nhưng đang lưu phiếu mốc ${caSel().kt}.\nLưu nhầm mốc làm số POS và doanh thu bị dồn sai ca. Vẫn lưu mốc ${caSel().kt}?`)) return;
   const am = $('grid').querySelectorAll('tr.am').length;
-  if (am && !confirm(`${am} SP có số âm (dòng đỏ). Kiểm tra lại — vẫn lưu?`)) return;
+  if (am && !confirm(`${am} SP có số âm (dòng ⛔). Kiểm tra lại — vẫn lưu?`)) return;
   const chua = $('grid').querySelectorAll('tr.chua').length;
-  if (chua && !confirm(`${chua} SP có tồn đầu/nhập nhưng chưa đếm tồn cuối (dòng vàng) — sẽ tính tồn cuối = 0. Vẫn lưu?`)) return;
+  if (chua && !confirm(`${chua} SP có tồn đầu/nhập nhưng chưa đếm tồn cuối (dòng ⏳) — sẽ tính tồn cuối = 0. Vẫn lưu?`)) return;
   try {
     if (ANH_P) { await ANH_P; ANH_P = null; }  // chờ ảnh lưu Drive xong (nếu chưa) để gắn link vào phiếu
     const r = await run('saveShift', { ngay: $('ngay').value, ca: caSel().kt, tenCa: caSel().ten, nv: nvLuu('kt'), anh: ANH, rows, luc0: LUC.kt });
