@@ -3,7 +3,7 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kiểm tồn cửa hàng</title>
-<meta name="theme-color" content="#13804a">
+<meta name="theme-color" content="#7d9f74">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kiểm tồn">
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -154,6 +154,30 @@
   .chart .c { flex:1 0 16px; display:flex; flex-direction:column; align-items:center; font-size:10px; color:#666; }
   .chart .c > div { flex:1; width:100%; display:flex; gap:1px; align-items:flex-end; }
   .chart i { flex:1; display:block; background:#13804a; min-height:1px; border-radius:2px 2px 0 0; } .chart i.l { background:#3a73cc; } .chart i.am { background:#c62828; }
+
+/* ===== THEME: CLAYMORPHISM — khối mềm phồng, bóng đổ mịn, màu pastel ===== */
+:root { --red:#7d9f74; --bg:#f4ece2; --line:#eadfd2; --head:#efe5d9; --clay:#fbf6f0;
+  --noi:8px 8px 18px rgba(160,128,96,.22), -6px -6px 14px rgba(255,255,255,.9), inset 2px 2px 3px rgba(255,255,255,.8), inset -3px -3px 6px rgba(150,110,80,.06);
+  --lom:inset 3px 3px 6px rgba(160,128,96,.18), inset -3px -3px 6px rgba(255,255,255,.95); }
+body { background:var(--bg); color:#4a3b33; font-family:'Nunito', system-ui, sans-serif; }
+header { background:linear-gradient(180deg,#9dbb92,#7d9f74); border-radius:0 0 22px 22px; box-shadow:0 8px 18px rgba(110,140,100,.35), inset 0 2px 3px rgba(255,255,255,.4); padding:10px 14px; }
+#thanh input, #thanh select { border-radius:12px; background:#fbf6f0; box-shadow:var(--lom); color:#4a3b33; }
+.card, .tw, .kpi4 .cot div, .kpi div { background:var(--clay); border:0; border-radius:22px; box-shadow:var(--noi); }
+.tw { overflow:auto; } .card { padding:14px; margin-bottom:14px; }
+input, select { border:0; border-radius:12px; background:#fbf6f0; box-shadow:var(--lom); color:#4a3b33; }
+button.b { border-radius:999px; padding:11px 20px; background:linear-gradient(180deg,#e9a99d,#d88b7c); box-shadow:6px 6px 14px rgba(200,120,100,.35), -4px -4px 10px rgba(255,255,255,.9), inset 2px 2px 3px rgba(255,255,255,.45); }
+button.g { background:linear-gradient(180deg,#b9cfe0,#98b6cc); color:#2f4558; }
+.msg { border-radius:16px; box-shadow:var(--noi); } .msg.warn { background:#fdf0dc; } .msg.err { background:#fbe3e0; } .msg.ok { background:#e7f0e2; }
+#timSP { border:0 !important; border-radius:999px !important; background:#fbf6f0; box-shadow:var(--lom); }
+.chuNhom span { border-radius:999px; box-shadow:3px 3px 6px rgba(160,128,96,.18), -2px -2px 5px #fff; border-left-width:0; }
+th { background:var(--head) !important; color:#6b5647; } #gridHead { border-radius:0 0 14px 14px; }
+#grid tbody td { border-color:#efe4d7; } #grid tbody td.sp { border-left-width:6px; border-radius:10px 0 0 10px; }
+#grid td input { border-radius:10px; }
+nav { border-radius:0 26px 26px 0; background:#fbf6f0; } nav .navHead { background:linear-gradient(180deg,#9dbb92,#7d9f74); }
+nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
+#tblTo .k1 { background:#dfe9f2; } #tblTo .k2 { background:#f7e3d6; } #tblTo .k3 { background:#e3eedd; } #tblTo .k4 { background:#f6dfe1; }
+.kpi div { padding:12px 14px; } .kpi div.bad { background:#f8e1dd; } .kpi div.alert { background:#fbecd6; }
+  .kpi4 .cot div.dam { background:linear-gradient(180deg,#9dbb92,#7d9f74); color:#fff; } #login .card { border-radius:26px; } #login h3 { color:#6f8f66; }
 </style>
 </head>
 <body>
