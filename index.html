@@ -87,7 +87,7 @@
   #grid tbody tr.am td, #grid tbody tr.mo td, #grid tbody tr.chua td { background-color:var(--nen, #fff) !important; }
   #grid tr.chua td.sp .tn::before { content:'⏳ '; } #grid tr.mo td.sp .tn::before { content:'❓ '; } #grid tr.am td.sp .tn::before { content:'⛔ '; }
   #grid tr.ocr td.sp .tn::after { content:' 📷'; } #grid tr:has(input.lechTD) td.sp .tn::after { content:' ✏️'; }
-  #grid tr.am td.br { color:#b00000; } #grid td input.lechTD { background:#fff !important; border:2px solid #f08a00; }
+  #grid tr.am td.br { color:#b00000; } #grid td input.lechTD { background:#fff !important; border:2px solid #f08a00; } #grid td input.khac { border:2px dashed #f08a00; } /* 2 lần đọc ảnh khác nhau */
   /* Dấu thập: ô đang chọn/di chuột → tô dòng + cột */
   #grid tbody tr.hl td, #grid .hlc { background-image:linear-gradient(rgba(30,100,220,.2), rgba(30,100,220,.2)) !important; }
   #grid tr.hl td.hlc { box-shadow:inset 0 0 0 2px #1e64dc; } #grid tr.hl input, #grid td.hlc input { background:#fffbe6; }
@@ -222,7 +222,7 @@
   </div>
   <div class="msg on" id="aiKT" hidden></div>
   <div class="card xn" id="xnCard"></div>
-  <div class="msg" id="msgNhap"></div>
+  <div class="msg" id="msgNhap" style="white-space:pre-line"></div>
   <div class="row"><button class="b" id="btnLuu">💾 Lưu thay đổi</button></div>
   <div class="kpi" id="kpiNhap"></div>
   <div class="msg" id="amNhap"></div>
@@ -511,7 +511,7 @@ function drawGrid() {
   const b = INIT.sp.map(s => `<tr data-ma="${s.ma}" data-q="${s.caiGoi}" style="--nen:${(MAU_NHOM[s.nhom] || MAU_NHOM['Khác'])[0]};--vien:${(MAU_NHOM[s.nhom] || MAU_NHOM['Khác'])[1]}" data-tim="${khongDau((s.tenPhieu || '') + ' ' + s.ten + ' ' + s.ma + ' ' + (s.nhom || ''))}">` + spCell(s.ten, s.ma, ` · <span class="q">${s.caiGoi}c/gói</span>`) +
     F.map(f => `<td><input type="number" inputmode="numeric" data-f="${f}"></td>`).join('') + '<td class="tc"></td><td class="br"></td><td class="po cPos"></td><td class="lp"></td></tr>').join('');
   $('grid').innerHTML = h + '<tbody>' + b + '</tbody><tfoot><tr><td>Tổng</td>' + F.map(f => `<td id="sum_${f}"></td>`).join('') + '<td id="sum_tc"></td><td id="sum_br"></td><td id="sum_po"></td><td id="sum_lp"></td></tr></tfoot>';
-  $('grid').oninput = e => { const tr = e.target.closest('tr'); if (tr) tr.classList.remove('mo'); calc(); if (e.target.dataset.f === 'tonDau') veXacNhan(); baoNhap('kt'); }; // sửa dòng → bỏ tô vàng
+  $('grid').oninput = e => { const tr = e.target.closest('tr'); if (tr) tr.classList.remove('mo'); e.target.classList.remove('khac'); calc(); if (e.target.dataset.f === 'tonDau') veXacNhan(); baoNhap('kt'); }; // sửa dòng → bỏ tô vàng
   const co = [...new Set(INIT.sp.map(x => x.nhom || 'Khác'))]; // chú thích màu nhóm đang có trên bảng
   $('chuNhom').innerHTML = '<span style="border:0;padding:2px 0">⛔ số âm · ❓ AI đọc chưa chắc · ⏳ chưa đếm tồn cuối · ✏️ tồn đầu điều chỉnh · 📷 AI vừa điền</span>' + co.map(n => `<span style="background:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[0]};border-color:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[1]}">${n}</span>`).join('');
   const g = $('grid'); // dấu thập theo ô đang nhập (focus) hoặc ô chuột đang trỏ
@@ -602,13 +602,35 @@ async function taiCa(d0) { // d0: phiếu đã tải sẵn lúc mở app (khỏi
   $('btnLuu').disabled = !!KHOA_KT; $('btnDoc').disabled = !!KHOA_KT || !INIT.hasKey; $('btnChot').disabled = !!KHOA_CHOT;
   $('msgChot').className = 'msg'; veAi();
 }
+let NGHIENG = 0;
+/** Ước lượng góc nghiêng (độ) của đường kẻ ngang: lấy các nét ngang mảnh, thử −8°…8°, góc nào làm chúng dồn thẳng hàng nhất là góc nghiêng. */
+function gocNghieng(c) {
+  const w = 400, h = Math.round(c.height * w / c.width), s = document.createElement('canvas'); s.width = w; s.height = h;
+  const g = s.getContext('2d'); g.drawImage(c, 0, 0, w, h); const d = g.getImageData(0, 0, w, h).data, toi = [], xam = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) xam[i] = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3;
+  for (let y = 3; y < h - 3; y++) for (let x = 0; x < w; x++) { const v = xam[y * w + x]; // nét ngang mảnh: tối hơn điểm cách 3px phía trên & dưới (đường kẻ bảng)
+    if (xam[(y - 3) * w + x] - v > 18 && xam[(y + 3) * w + x] - v > 18) toi.push(x - w / 2, y); }
+  let tot = 0, best = 0;
+  for (let a = -8; a <= 8.001; a += 0.25) {
+    const r = a * Math.PI / 180, sn = Math.sin(r), cs = Math.cos(r), hang = new Float32Array(h * 2);
+    for (let i = 0; i < toi.length; i += 2) { const yy = Math.round(toi[i + 1] * cs - toi[i] * sn + h / 2); if (yy >= 0 && yy < h * 2) hang[yy]++; }
+    let diem = 0; for (let y = 1; y < hang.length; y++) diem += (hang[y] - hang[y - 1]) ** 2;
+    if (diem > tot) { tot = diem; best = a; }
+  }
+  return best;
+}
 function nenAnh(file) {
   return new Promise(ok => {
     const img = new Image();
     img.onload = () => {
       const k = Math.min(1, 2000 / Math.max(img.width, img.height)), c = document.createElement('canvas');
       c.width = img.width * k; c.height = img.height * k; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      ok(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+      const goc = gocNghieng(c); // ảnh chụp nghiêng → xoay cho đường kẻ nằm ngang, AI không đọc lệch dòng
+      let out = c;
+      if (Math.abs(goc) >= 0.3) { out = document.createElement('canvas'); out.width = c.width; out.height = c.height; const x = out.getContext('2d');
+        x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); x.translate(out.width / 2, out.height / 2); x.rotate(-goc * Math.PI / 180); x.drawImage(c, -c.width / 2, -c.height / 2); }
+      NGHIENG = goc;
+      ok(out.toDataURL('image/jpeg', 0.85).split(',')[1]);
     };
     img.src = URL.createObjectURL(file);
   });
@@ -630,12 +652,16 @@ async function docAnh() {
       if (!map[tr.dataset.ma] && !(r.maIn || []).includes(tr.dataset.ma)) return; // mã không có trên phiếu → giữ số đang nhập
       const x = map[tr.dataset.ma] || {}; if (map[tr.dataset.ma]) hit++; // hàng có trên phiếu: ô trống trên phiếu = trống (xóa số cũ)
       tr.classList.toggle('ocr', !!map[tr.dataset.ma]); tr.classList.toggle('mo', x.ro === false || !!x.ghi_chu); // AI không chắc → tô vàng
-      tr.querySelectorAll('input').forEach(i => { if (!key[i.dataset.f] || i.readOnly) return; const v = x[key[i.dataset.f]]; i.value = v !== null && v !== undefined && v !== '' ? v : ''; });
+      tr.querySelectorAll('input').forEach(i => { if (!key[i.dataset.f] || i.readOnly) return; const v = x[key[i.dataset.f]]; i.value = v !== null && v !== undefined && v !== '' ? v : '';
+        const k = x.khac && x.khac[key[i.dataset.f]]; i.classList.toggle('khac', !!k); i.title = k ? `2 lần đọc: ${k[0] ?? 'trống'} / ${k[1] ?? 'trống'}` : ''; }); // 2 lần đọc khác nhau → viền cam nét đứt
     });
-    const la = r.items.filter(x => !INIT.sp.some(s => s.ma === String(x.ma).trim()) || x.ghi_chu || x.ro === false);
+    const la = r.items.filter(x => !INIT.sp.some(s => s.ma === String(x.ma).trim()) || x.ghi_chu || (x.ro === false && !x.khac));
+    const TEN_O = { nhap: 'Nhập', goi: 'Gói', le: 'Lẻ', ton_tu: 'Tủ', huy: 'Hủy', online: 'Online' }, tenSP = ma => { const s = INIT.sp.find(s => s.ma === ma); return s ? (s.tenPhieu || s.ten) : ma; };
+    const khac = r.items.filter(x => x.khac).map(x => tenSP(String(x.ma).trim()) + ': ' + Object.keys(x.khac).map(f => `${TEN_O[f]} ${x.khac[f][0] ?? '–'} hay ${x.khac[f][1] ?? '–'}`).join(', '));
     calc(); anHien(); // dòng AI vừa điền số → hiện lại
-    msg('msgNhap', `(${Math.round((Date.now() - t0) / 1000)} giây, AI ${r.giay} giây · ${r.model} · suy nghĩ ${r.muc}${r.lan > 1 ? ' · ' + r.lan + ' lần gọi' : ''}) Đọc được ${hit} mã SP (dòng 📷). ❓ = AI đọc không rõ, ⛔ = số âm — kiểm tra lại trước khi lưu.` +
-      (la.length ? ' Cần xem lại: ' + la.map(x => `${x.ma}${x.ghi_chu ? ' (' + x.ghi_chu + ')' : ''}`).join('; ') : ''), la.length ? 'warn' : 'ok');
+    msg('msgNhap', `(${Math.round((Date.now() - t0) / 1000)} giây, AI ${r.giay} giây · ${r.model} · suy nghĩ ${r.muc}${r.lan > 1 ? ' · ' + r.lan + ' lần gọi' : ''}) ${Math.abs(NGHIENG) >= 0.3 ? 'Ảnh nghiêng ' + Math.abs(NGHIENG) + '° → đã xoay thẳng. ' : ''}Đọc được ${hit} mã SP (dòng 📷). ❓ = AI đọc không rõ, ⛔ = số âm — kiểm tra lại trước khi lưu.` +
+      (r.soLanDoc === 2 ? (khac.length ? `\n❓ 2 lần đọc khác nhau ở ${r.soKhac} ô (viền cam nét đứt) — xem lại phiếu giấy: ${khac.join('; ')}` : '\n✓ 2 lần đọc khớp nhau hoàn toàn.') : '\n(Chỉ đọc được 1 lần — không so sánh.)') +
+      (la.length ? ' Cần xem lại: ' + la.map(x => `${x.ma}${x.ghi_chu ? ' (' + x.ghi_chu + ')' : ''}`).join('; ') : ''), la.length || khac.length ? 'warn' : 'ok');
   } catch (e) { clearInterval(dem); $('btnDoc').disabled = false; msg('msgNhap', e.message, 'err'); }
 }
 const linkAnh = () => (ANH_TRUOC ? `<a href="${ANH_TRUOC}" target="_blank">📷 Ảnh phiếu ca trước</a> ` : '') +
