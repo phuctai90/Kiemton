@@ -969,7 +969,7 @@ const dm = d => d.slice(8) + '/' + d.slice(5, 7);
 const gioCa = ten => { const c = INIT.ca.find(x => x.ten === ten); if (!c) return 0; const f = x => +x.slice(0, 2) + +x.slice(3) / 60; return f(c.kt) - f(c.bd); };
 const ttNV = ten => (INIT.nv.find(n => n.ten === ten) || {}).tt || '';
 const laPhu = ten => !!(INIT.ca.find(c => c.ten === ten) || {}).phu;
-const caXem = () => INIT.ca.filter(c => laQL() || !c.phu); // ca phụ chỉ Quản lý thấy
+const caXem = () => INIT.ca.filter(c => !c.phu); // Lịch ca (đăng ký, sắp ca): không có ca phụ — ca phụ chỉ dùng kiểm tồn/chốt tiền, không tính lương
 const caHead = () => caXem().map(c => `<th>${c.ten}<br><span class="small">${c.bd}–${c.kt}</span></th>`).join('');
 
 let LICH = null;
@@ -1002,7 +1002,7 @@ const MAX_NV_CA = 3;
 function veSap() {
   const { days, d } = LICH, chot = d.sap.length > 0;
   $('sapTbl').innerHTML = '<thead><tr><th>Ngày</th>' + caHead() + '<th>+/- giờ làm<br><span class="small">phút</span></th></tr></thead><tbody>' + days.map((n, i) => `<tr data-ngay="${n}"><td>${THU[i]}<br>${dm(n)}</td>` +
-    INIT.ca.map(c => {
+    caXem().map(c => {
       const reg = d.dk.filter(x => x.ngay === n && x.ca === c.ten).map(x => x.nv);
       const sel = (chot ? d.sap.filter(x => x.ngay === n && x.ca === c.ten).map(x => x.nv) : reg).slice(0, MAX_NV_CA);
       const opts = v => '<option value="">—</option>' + reg.concat(conLam().map(x => x.ten).filter(t => !reg.includes(t)))
