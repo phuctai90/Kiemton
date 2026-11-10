@@ -178,6 +178,15 @@ nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
 #tblTo .k1 { background:#dfe9f2; } #tblTo .k2 { background:#f7e3d6; } #tblTo .k3 { background:#e3eedd; } #tblTo .k4 { background:#f6dfe1; }
 .kpi div { padding:12px 14px; } .kpi div.bad { background:#f8e1dd; } .kpi div.alert { background:#fbecd6; }
   .kpi4 .cot div.dam { background:linear-gradient(180deg,#9dbb92,#7d9f74); color:#fff; } #login .card { border-radius:26px; } #login h3 { color:#6f8f66; }
+/* Cột Bán ra offline nổi bật trên bảng kiểm tồn */
+#grid th.cBan { background:#f5b93a !important; color:#4a2800; font-size:14px; box-shadow:inset 3px 0 0 #d99100, inset -3px 0 0 #d99100; }
+#grid tbody td.br { background:#ffe39a !important; color:#5a3200; font-size:17px; font-weight:800; box-shadow:inset 3px 0 0 #e0a100, inset -3px 0 0 #e0a100; }
+#grid tfoot td#sum_br { background:#f5b93a; color:#4a2800; font-size:17px; font-weight:800; }
+/* Lịch ca: ca sáng nền sáng, ca chiều tối nền tối; tiêu đề ca chữ lớn đậm */
+#dkTbl th.thCa, #sapTbl th.thCa { font-size:17px; font-weight:800; line-height:1.25; } th.thCa .small { font-size:12px; font-weight:600; }
+#dkTbl th.caS, #sapTbl th.caS { background:#fff3c4 !important; color:#5a4300; } #dkTbl td.caS, #sapTbl td.caS { background:#fffaf0; }
+#dkTbl th.caT, #sapTbl th.caT { background:#3f4a6b !important; color:#fff; } #dkTbl th.caT .small, #sapTbl th.caT .small { color:#dfe5ff; }
+#dkTbl td.caT, #sapTbl td.caT { background:#5a6585; } #sapTbl td.caT .dk { color:#e6eaff; } #sapTbl td.caT .tag { color:#222; }
 </style>
 </head>
 <body>
@@ -378,13 +387,13 @@ nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
 <!-- LƯƠNG -->
 <section id="luong">
   <div class="row">
-    <label>Tháng<input type="month" id="lgThang"></label>
+    <label>Từ ngày<input type="date" id="lgTu"></label><label>Đến ngày<input type="date" id="lgDen"></label>
     <button class="b" id="btnLg">Tính lương</button>
   </div>
   <p class="small gt" id="lgInfo"></p>
   <div class="msg" id="msgLg"></div>
   <div class="tw"><table id="lgTbl"></table></div>
-  <h4>Lương theo tuần <span class="small">(ngày 1–7, 8–14, 15–21, 22–28, 29–cuối tháng)</span></h4>
+  <h4>Lương theo tuần <span class="small">(mỗi 7 ngày tính từ "Từ ngày")</span></h4>
   <div class="tw"><table id="lgTuan" class="lg"></table></div>
   <h4>Lương theo ngày <span class="small">(lương ca + phụ cấp + tiền +/- giờ làm)</span></h4>
   <div class="tw dai"><table id="lgNgay" class="lg"></table></div>
@@ -994,7 +1003,8 @@ const gioCa = ten => { const c = INIT.ca.find(x => x.ten === ten); if (!c) retur
 const ttNV = ten => (INIT.nv.find(n => n.ten === ten) || {}).tt || '';
 const laPhu = ten => !!(INIT.ca.find(c => c.ten === ten) || {}).phu;
 const caXem = () => INIT.ca.filter(c => !c.phu); // Lịch ca (đăng ký, sắp ca): không có ca phụ — ca phụ chỉ dùng kiểm tồn/chốt tiền, không tính lương
-const caHead = () => caXem().map(c => `<th>${c.ten}<br><span class="small">${c.bd}–${c.kt}</span></th>`).join('');
+const lopCa = c => c.bd < '12:00' ? 'caS' : 'caT'; // ca sáng (bắt đầu trước 12h: Ca 1, Ca 2) nền sáng · ca chiều tối (Ca 3, Ca 4) nền tối
+const caHead = () => caXem().map(c => `<th class="thCa ${lopCa(c)}">${c.ten}<br><span class="small">${c.bd}–${c.kt}</span></th>`).join('');
 
 let LICH = null;
 async function taiLich() {
@@ -1014,7 +1024,7 @@ function veLichToi() { // NV: lịch đã được Quản lý chốt cho mình
 function veDk() {
   const nv = $('dkNv').value, { days, d } = LICH;
   $('dkTbl').innerHTML = '<tr><th>Ngày</th>' + caHead() + '</tr>' + days.map((n, i) => `<tr><td>${THU[i]} ${dm(n)}</td>` +
-    caXem().map(c => `<td><input type="checkbox" data-ngay="${n}" data-ca="${c.ten}" ${d.dk.some(x => x.ngay === n && x.ca === c.ten && x.nv === nv) ? 'checked' : ''} ${nv ? '' : 'disabled'}></td>`).join('') + '</tr>').join('');
+    caXem().map(c => `<td class="${lopCa(c)}"><input type="checkbox" data-ngay="${n}" data-ca="${c.ten}" ${d.dk.some(x => x.ngay === n && x.ca === c.ten && x.nv === nv) ? 'checked' : ''} ${nv ? '' : 'disabled'}></td>`).join('') + '</tr>').join('');
 }
 async function luuDk() {
   const nv = $('dkNv').value; if (!nv) return msg('msgDk', 'Chọn tên của bạn.', 'err');
@@ -1031,7 +1041,7 @@ function veSap() {
       const sel = (chot ? d.sap.filter(x => x.ngay === n && x.ca === c.ten).map(x => x.nv) : reg).slice(0, MAX_NV_CA);
       const opts = v => '<option value="">—</option>' + reg.concat(conLam().map(x => x.ten).filter(t => !reg.includes(t)))
         .map(t => `<option value="${t}" ${t === v ? 'selected' : ''}>${reg.includes(t) ? '✓ ' : ''}${t}</option>`).join('');
-      return `<td>${[0, 1, 2].map(k => `<select data-ngay="${n}" data-ca="${c.ten}">${opts(sel[k] || '')}</select>`).join('')}` +
+      return `<td class="${lopCa(c)}">${[0, 1, 2].map(k => `<select data-ngay="${n}" data-ca="${c.ten}">${opts(sel[k] || '')}</select>`).join('')}` +
         `<div class="dk">${reg.length ? 'ĐK: ' + reg.map(tagNV).join(' ') : 'Chưa ai ĐK'}</div></td>`;
     }).join('') + `<td class="tcc"></td></tr>`).join('') + '</tbody>';
   $('sapTbl').querySelectorAll('select').forEach(markReg);
@@ -1071,7 +1081,8 @@ async function luuSap() {
 }
 async function tinhLuong() {
   try {
-    const r = await run('getLuong', '', $('lgThang').value), t = {};
+    const tu = $('lgTu').value, den = $('lgDen').value; if (!tu || !den || tu > den) return msg('msgLg', 'Chọn khoảng ngày hợp lệ (Từ ngày ≤ Đến ngày).', 'err');
+    $('msgLg').className = 'msg'; const r = await run('getLuong', '', tu, den), t = {};
     const nvx = n => t[n] = t[n] || { gio: 0, tien: 0, dg: new Set(), thieu: false, ca: {}, ngay: {}, tcg: 0, tct: 0 };
     // Giờ + lương/giờ lấy theo số đã chốt cứng lúc Chốt lịch; dòng cũ chưa có thì tính theo danh mục hiện tại
     r.sap.forEach(x => { const y = nvx(x.nv);
@@ -1094,7 +1105,7 @@ async function tinhLuong() {
     ds.forEach(n => t[n].tt = ttNV(n) || '<span class="neg">chưa có</span>');
     const sum = (f, k) => k ? fmt(ds.reduce((s, n) => s + t[n][k], 0)) : +ds.reduce((s, n) => s + (+f(t[n]) || 0), 0).toFixed(2);
     $('lgTbl').className = 'lg';
-    $('lgTbl').innerHTML = !ds.length ? '<tr><td class="small">Tháng này chưa có lịch đã chốt.</td></tr>' :
+    $('lgTbl').innerHTML = !ds.length ? '<tr><td class="small">Khoảng ngày này chưa có lịch đã chốt (chỉ tính ngày đã qua).</td></tr>' :
       '<thead><tr><th>Mục</th>' + ds.map(n => `<th>${tagNV(n)}</th>`).join('') + '<th>Tổng</th></tr></thead><tbody>' +
       hang.map(([ten, f, cong, dam, k]) => `<tr class="${dam ? 'tongR' : ''}"><td>${ten}</td>` + ds.map(n => `<td>${f(t[n])}</td>`).join('') + `<td><b>${cong ? sum(f, k) : ''}</b></td></tr>`).join('') + '</tbody>';
     const ngs = Object.keys(LN).sort();
@@ -1104,12 +1115,12 @@ async function tinhLuong() {
         `<td><b>${fmt(Object.values(LN[n]).reduce((a, z) => a + z.tien, 0))}</b></td></tr>`).join('') +
       '</tbody><tfoot><tr class="tongR"><td>Tổng</td>' + ds.map(v => `<td>${fmt(ngs.reduce((a, n) => a + (LN[n][v] ? LN[n][v].tien : 0), 0))}</td>`).join('') +
       `<td>${fmt(ngs.reduce((a, n) => a + Object.values(LN[n]).reduce((b, z) => b + z.tien, 0), 0))}</td></tr></tfoot>`;
-    // Tổng theo tuần: mỗi 7 ngày tính từ ngày 1 (tuần 5 = ngày 29 → cuối tháng)
-    const TU = {}, cuoi = new Date(+$('lgThang').value.slice(0, 4), +$('lgThang').value.slice(5, 7), 0).getDate();
-    ngs.forEach(n => { const k = Math.min(4, Math.floor((+n.slice(8) - 1) / 7)); Object.keys(LN[n]).forEach(v => { TU[k] = TU[k] || {}; TU[k][v] = (TU[k][v] || 0) + LN[n][v].tien; }); });
+    // Tổng theo tuần: mỗi 7 ngày tính từ Từ ngày (tuần cuối có thể ít hơn 7 ngày)
+    const TU = {}, soNgay = (a, b) => Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5);
+    ngs.forEach(n => { const k = Math.floor(soNgay(tu, n) / 7); Object.keys(LN[n]).forEach(v => { TU[k] = TU[k] || {}; TU[k][v] = (TU[k][v] || 0) + LN[n][v].tien; }); });
     const tuK = Object.keys(TU).map(Number).sort(), tongTu = k => Object.values(TU[k]).reduce((a, b) => a + b, 0);
     $('lgTuan').innerHTML = !tuK.length ? '' : '<thead><tr><th>Tuần</th>' + ds.map(n => `<th>${tagNV(n)}</th>`).join('') + '<th>Tổng tuần</th></tr></thead><tbody>' +
-      tuK.map(k => `<tr><td>Tuần ${k + 1} <span class="small">${k * 7 + 1}–${k < 4 ? k * 7 + 7 : cuoi}</span></td>` + ds.map(v => `<td>${TU[k][v] ? fmt(TU[k][v]) : ''}</td>`).join('') + `<td><b>${fmt(tongTu(k))}</b></td></tr>`).join('') +
+      tuK.map(k => { const a = dAdd(tu, k * 7), b = dAdd(tu, k * 7 + 6); return `<tr><td>Tuần ${k + 1} <span class="small">${dm(a)}–${dm(b < den ? b : den)}</span></td>` + ds.map(v => `<td>${TU[k][v] ? fmt(TU[k][v]) : ''}</td>`).join('') + `<td><b>${fmt(tongTu(k))}</b></td></tr>`; }).join('') +
       '</tbody><tfoot><tr class="tongR"><td>Tổng</td>' + ds.map(v => `<td>${fmt(tuK.reduce((a, k) => a + (TU[k][v] || 0), 0))}</td>`).join('') + `<td>${fmt(tuK.reduce((a, k) => a + tongTu(k), 0))}</td></tr></tfoot>`;
     $('lgH2').textContent = 'Số ca theo loại';
     $('lgCt').innerHTML = !ds.length ? '' : '<tr><th>Ca</th>' + ds.map(n => `<th>${tagNV(n)}</th>`).join('') + '</tr>' +
@@ -1441,7 +1452,7 @@ async function boot() {
   $('ca').onchange = async () => {
     const n = $('ngay').value; if (!n) return;
     $('tqNgay').value = $('ngayBC').value = $('chiNgay').value = $('lTuan').value = $('ptNgay').value = n;
-    $('thang').value = $('chiThang').value = $('lgThang').value = $('pnThang').value = $('ovThang').value = $('dhThang').value = n.slice(0, 7);
+    $('thang').value = $('chiThang').value = $('pnThang').value = $('ovThang').value = $('dhThang').value = n.slice(0, 7);
     await taiCa(); const t = document.querySelector('nav button.on'); if (t && ON_TAB[t.dataset.t]) ON_TAB[t.dataset.t]();
   };
   $('btnRf').onclick = async () => { const b = $('btnRf'); b.disabled = true; try { await $('ngay').onchange(); toast('Đã làm mới'); } finally { b.disabled = false; } }; // ⟳ tải lại số liệu ngày/ca/tab đang mở
@@ -1455,7 +1466,7 @@ async function boot() {
   $('btnChi').onclick = themChi; $('chiMuc').onchange = () => { $('lbChiTd').hidden = $('chiMuc').value !== 'Tiền khác'; if (!$('lbChiTd').hidden) $('chiTd').focus(); }; $('chiThang').onchange = $('chiNgay').onchange = taiChi;
   ON_TAB.tienchi = taiChi;
   const ql = conLam().find(n => n.ten.toLowerCase().startsWith('diệp')); if (ql) $('sapNguoi').value = ql.ten; // mặc định Diệp QL
-  $('lTuan').value = t; $('lgThang').value = t.slice(0, 7);
+  $('lTuan').value = t; $('lgTu').value = t.slice(0, 8) + '01'; $('lgDen').value = t;
   $('lTuan').onchange = taiLich; $('dkNv').onchange = () => LICH && veDk();
   $('lTruoc').onclick = () => { $('lTuan').value = dAdd($('lTuan').value, -7); taiLich(); };
   $('lSau').onclick = () => { $('lTuan').value = dAdd($('lTuan').value, 7); taiLich(); };
