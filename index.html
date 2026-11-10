@@ -185,8 +185,10 @@ nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
 /* Lịch ca: ca sáng nền sáng, ca chiều tối nền tối; tiêu đề ca chữ lớn đậm */
 #dkTbl th.thCa, #sapTbl th.thCa { font-size:17px; font-weight:800; line-height:1.25; } th.thCa .small { font-size:12px; font-weight:600; }
 #dkTbl th.caS, #sapTbl th.caS { background:#fff3c4 !important; color:#5a4300; } #dkTbl td.caS, #sapTbl td.caS { background:#fffaf0; }
-#dkTbl th.caT, #sapTbl th.caT { background:#3f4a6b !important; color:#fff; } #dkTbl th.caT .small, #sapTbl th.caT .small { color:#dfe5ff; }
-#dkTbl td.caT, #sapTbl td.caT { background:#5a6585; } #sapTbl td.caT .dk { color:#e6eaff; } #sapTbl td.caT .tag { color:#222; }
+#dkTbl th.caT, #sapTbl th.caT { background:#cfe3fb !important; color:#1d3b6b; } #dkTbl th.caT .small, #sapTbl th.caT .small { color:#3d5a85; }
+#dkTbl td.caT, #sapTbl td.caT { background:#eaf3fe; }
+/* Ô Nhập / Hủy / Online có số → in đậm + viền theo màu cột */
+#grid td input.coSo { font-weight:800; font-size:16px; border:2px solid currentColor !important; background:#fff !important; }
 </style>
 </head>
 <body>
@@ -577,6 +579,7 @@ function anHien() { // ẩn mã tồn 0 suốt 7 ngày, trừ dòng đang có s�
 }
 function rowVal(tr) { const v = {}; tr.querySelectorAll('input').forEach(i => v[i.dataset.f] = i.value); return v; }
 function calc() {
+  $('grid').querySelectorAll('input[data-f="nhap"], input[data-f="online"], input[data-f="huy"]').forEach(i => i.classList.toggle('coSo', i.value !== '' && +i.value !== 0)); // ô có số → đậm + viền
   let ds = 0, dsOn = 0, sPo = 0, sLp = 0; const dsAm = [], cong = $('ngay').value >= INIT.nhapCongTu; // cong: app tự cộng Nhập vào tồn cuối
   const sum = {}; F.concat(['tc', 'br']).forEach(f => sum[f] = 0);
   $('grid').querySelectorAll('tbody tr').forEach(tr => {
