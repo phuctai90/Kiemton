@@ -351,7 +351,7 @@ nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
   <div id="lichToi" hidden><h4>Lịch đã được xếp của bạn</h4><div class="tw"><table id="lichToiTbl"></table></div></div>
   <div id="sapSec">
   <h4>② Tổng hợp đăng ký &amp; sắp ca</h4>
-  <div class="legend gt"><span>Mỗi ca tối đa 3 người</span><span>Mỗi NV một màu</span><span>Viền liền = NV có đăng ký ca đó · viền đứt = quản lý thêm</span><span>✓ trong danh sách = đã đăng ký</span><span>Cột +/- giờ làm: nhập số PHÚT làm thêm (vd 30) hoặc làm thiếu (vd -15)</span><span>Phụ cấp 25k/ngày khi làm từ 2 ca</span><span>Ca phụ (cột D tab CA = x): chỉ Quản lý thấy, không tính lương, không tính ca/giờ cho NV</span></div>
+  <div class="legend gt"><span>Mỗi ca tối đa 3 người</span><span>Mỗi NV một màu</span><span>Viền liền = NV có đăng ký ca đó · viền đứt = quản lý thêm</span><span>✓ trong danh sách = đã đăng ký</span><span>Cột +/- giờ làm: nhập số PHÚT làm thêm (vd 30) hoặc làm thiếu (vd -15)</span><span>Phụ cấp 25k/ngày khi làm từ 2 ca (thử việc không có)</span><span>Ca phụ (cột D tab CA = x): chỉ Quản lý thấy, không tính lương, không tính ca/giờ cho NV</span></div>
   <div class="tw dai"><table class="sap" id="sapTbl"></table></div>
   <h4>Tổng theo nhân viên</h4>
   <div class="tw"><table id="sapTong"></table></div>
@@ -381,7 +381,7 @@ nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
     <button class="b" id="btnChi">💾 Lưu khoản chi</button>
   </div>
   <div class="msg" id="msgChi"></div>
-  <div class="row"><label>Xem tháng<input type="month" id="chiThang"></label></div>
+  <div class="row"><label>Xem từ ngày<input type="date" id="chiTu"></label><label>Đến ngày<input type="date" id="chiDen"></label></div>
   <div class="kpi" id="kpiChi"></div>
   <div class="tw"><table id="chiTbl"></table></div>
 </section>
@@ -1072,7 +1072,7 @@ function tongSap() {
   });
   tcList().forEach(x => (t[x.nv] = t[x.nv] || moi()).tc += x.phut);
   $('sapTong').innerHTML = '<tr><th>Nhân viên</th><th>Trạng thái</th><th>Ca đăng ký</th><th>Ca được xếp</th><th>Giờ xếp</th><th>+/- giờ làm (phút)</th><th>Phụ cấp</th></tr>' +
-    Object.keys(t).map(n => { const pc = Object.values(t[n].ngay).filter(k => k >= 2).length * INIT.phuCap;
+    Object.keys(t).map(n => { const pc = ttNV(n) === 'Thử việc' ? 0 : Object.values(t[n].ngay).filter(k => k >= 2).length * INIT.phuCap; // thử việc không có phụ cấp
       return `<tr><td>${tagNV(n)}</td><td>${ttNV(n)}</td><td>${t[n].dk || '<span class="neg">0</span>'}</td><td>${t[n].ca}</td><td>${+t[n].gio.toFixed(2)}</td><td class="${cls(t[n].tc)}">${t[n].tc || ''}</td><td>${pc ? fmt(pc) : ''}</td></tr>`; }).join('');
 }
 const tcList = () => [...$('sapTbl').querySelectorAll('input.tcg')].filter(i => Math.round(+i.value)).map(i => ({ ngay: i.dataset.ngay, nv: i.dataset.nv, phut: Math.round(+i.value), gio: Math.round(+i.value) / 60 }));
@@ -1095,11 +1095,11 @@ async function tinhLuong() {
     // Lương từng ngày theo Sắp ca: [ngày][NV] = {tien, ca: ['Ca 1 05:00–09:00']}
     const LN = {}, o = (n, v) => ((LN[n] = LN[n] || {})[v] = LN[n][v] || { tien: 0, ca: [], soCa: 0 });
     r.sap.forEach(x => { const g = x.gio !== '' && x.gio != null ? +x.gio : gioCa(x.ca), dg = x.dg !== '' && x.dg != null ? +x.dg : (INIT.luongGio[ttNV(x.nv)] || 0), c = INIT.ca.find(y => y.ten === x.ca);
-      const z = o(x.ngay, x.nv); z.tien += g * dg; z.soCa++; const h = t => +t.slice(0, 2) + 'h' + (t.slice(3) === '00' ? '' : t.slice(3)); z.ca.push(c ? h(c.bd) + '–' + h(c.kt) : x.ca); });
-    Object.values(LN).forEach(m => Object.values(m).forEach(z => { if (z.soCa >= 2) z.tien += INIT.phuCap; }));
+      const z = o(x.ngay, x.nv); z.tien += g * dg; z.soCa++; if (dg === INIT.luongGio['Thử việc']) z.tv = 1; const h = t => +t.slice(0, 2) + 'h' + (t.slice(3) === '00' ? '' : t.slice(3)); z.ca.push(c ? h(c.bd) + '–' + h(c.kt) : x.ca); });
+    Object.values(LN).forEach(m => Object.values(m).forEach(z => { if (z.soCa >= 2 && !z.tv) z.tien += INIT.phuCap; })); // ngày có ca lương thử việc → không phụ cấp
     r.tc.forEach(x => { o(x.ngay, x.nv).tien += x.gio * (x.dg || INIT.luongGio[ttNV(x.nv)] || 0); });
     const ds = Object.keys(t).sort(), thieu = ds.filter(n => t[n].thieu);
-    ds.forEach(n => { const x = t[n]; x.soCa = Object.values(x.ca).reduce((a, b) => a + b, 0); x.pcN = Object.values(x.ngay).filter(k => k >= 2).length;
+    ds.forEach(n => { const x = t[n]; x.soCa = Object.values(x.ca).reduce((a, b) => a + b, 0); x.pcN = Object.values(LN).filter(m => m[n] && m[n].soCa >= 2 && !m[n].tv).length;
       x.pc = x.pcN * INIT.phuCap; x.lc = Math.round(x.tien); x.tct = Math.round(x.tct); x.tong = x.lc + x.pc + x.tct; });
     const hang = [ // [tên hàng, giá trị theo NV, có cộng tổng không, in đậm]
       ['Trạng thái', x => x.tt], ['Số ca', x => x.soCa, 1], ['Giờ ca', x => +x.gio.toFixed(2), 1], ['Lương/giờ', x => [...x.dg].map(fmt).join(' / ') || 0],
@@ -1128,18 +1128,18 @@ async function tinhLuong() {
     $('lgH2').textContent = 'Số ca theo loại';
     $('lgCt').innerHTML = !ds.length ? '' : '<tr><th>Ca</th>' + ds.map(n => `<th>${tagNV(n)}</th>`).join('') + '</tr>' +
       INIT.ca.filter(c => !c.phu).map(c => `<tr><td>${c.ten} <span class="small">${+gioCa(c.ten).toFixed(2)}h</span></td>` + ds.map(n => `<td>${t[n].ca[c.ten] || ''}</td>`).join('') + '</tr>').join('');
-    $('lgInfo').textContent = 'Tính theo lịch đã chốt ở tab Lịch ca. Lương ca = giờ × lương/giờ (chốt cứng lúc Chốt lịch tuần). Phụ cấp ' + fmt(INIT.phuCap) + 'đ/ngày khi làm từ 2 ca trở lên. Tiền +/- giờ làm = số phút (Quản lý nhập ở Sắp ca, âm = làm thiếu) ÷ 60 × lương/giờ. Thử việc ' + fmt(INIT.luongGio['Thử việc']) + 'đ/giờ, Chính thức ' + fmt(INIT.luongGio['Chính thức']) + 'đ/giờ.';
+    $('lgInfo').textContent = 'Tính theo lịch đã chốt ở tab Lịch ca. Lương ca = giờ × lương/giờ (chốt cứng lúc Chốt lịch tuần). Phụ cấp ' + fmt(INIT.phuCap) + 'đ/ngày khi làm từ 2 ca trở lên (ngày có ca lương thử việc thì không có phụ cấp). Tiền +/- giờ làm = số phút (Quản lý nhập ở Sắp ca, âm = làm thiếu) ÷ 60 × lương/giờ. Thử việc ' + fmt(INIT.luongGio['Thử việc']) + 'đ/giờ, Chính thức ' + fmt(INIT.luongGio['Chính thức']) + 'đ/giờ.';
     if (thieu.length) msg('msgLg', `Có ca chưa có lương/giờ (NV chưa có trạng thái lúc chốt): ${thieu.join(', ')}. Cập nhật trạng thái trong tab NHANVIEN rồi chốt lại tuần đó.`, 'warn'); else $('msgLg').className = 'msg';
   } catch (e) { msg('msgLg', e.message, 'err'); }
 }
 
 /* ---------- P&L ---------- */
-const PN_CO_DINH = ['Mặt bằng', 'Điện', 'Nước'];
+const CD_TAY = 'CP cố định nhập tay (cả tháng)', PN_CO_DINH = ['Mặt bằng', 'Điện', 'Nước', CD_TAY]; // CD_TAY có số → thay cho mọi dòng CP cố định, không chia theo ngày đã qua
 let PN = null;
 async function taiPnl() {
   try { PN = await run('getPnl', '', $('pnThang').value); } catch (e) { return msg('msgPn', e.message, 'err'); }
   const tien = m => (PN.items.find(x => x.muc === m) || {}).tien || '';
-  $('pnCp').innerHTML = PN_CO_DINH.map(m => `<tr><td>${m}</td><td><input type="number" inputmode="numeric" data-m="${m}" value="${tien(m)}"></td><td></td></tr>`).join('');
+  $('pnCp').innerHTML = PN_CO_DINH.map(m => `<tr><td>${m}</td><td><input type="number" inputmode="numeric" data-m="${m}" value="${tien(m)}"></td><td>${m === CD_TAY ? '<span class="small">điền thì thay các dòng khác</span>' : ''}</td></tr>`).join('');
   PN.items.filter(x => !PN_CO_DINH.includes(x.muc)).forEach(x => themCp(x.muc, x.tien));
   $('msgPn').className = 'msg';
   if (PN.thieuGiaNhap.length) msg('msgPn', `Chưa có Giá nhập/gói (DM_SP cột H) nên giá vốn đang tính 0 cho: ${PN.thieuGiaNhap.join('; ')}`, 'warn');
@@ -1156,7 +1156,8 @@ const cpItems = () => [...$('pnCp').querySelectorAll('tr')].map(tr => { const a 
 const dongDon = P => P.donLon && P.donLon.so ? `<tr><td class="small">↳ Trong đó đơn hàng lớn (${P.donLon.so} đơn, ${P.donLon.xong} đã xong) — đã nằm trong doanh thu file, không cộng thêm</td><td class="small">${fmt(P.donLon.tien)}</td></tr>` : '';
 /** Tính P&L tháng — dùng chung cho tab P&L và tab Tổng quan để số 2 tab luôn khớp. it = chi phí cố định [{muc, tien}] */
 function pnlTinh(P, it) {
-  const cdN = it.reduce((s, x) => s + x.tien, 0) / P.soNgay, cd = cdN * (P.daQua != null ? P.daQua : P.soNgay); // CP cố định chỉ tính cho ngày đã qua
+  const tay = (it.find(x => x.muc === CD_TAY) || {}).tien; // số nhập tay: lấy nguyên số, chia đều cho các ngày có số liệu
+  const cdN = tay ? tay / (P.ngay.length || 1) : it.reduce((s, x) => s + x.tien, 0) / P.soNgay, cd = tay || cdN * (P.daQua != null ? P.daQua : P.soNgay); // CP cố định chỉ tính cho ngày đã qua
   // Doanh thu = bán ra trên file (offline + online) × giá bán. LN = Doanh thu − Giá vốn (bán ra × giá vốn) − Chi phí (lương + tiền chi + CP cố định/ngày).
   // Lệch = Σ 'Lệch file' từng lần chốt (TM bán + CK − doanh thu file của mốc đó), server tính — chỉ theo dõi, không trừ vào LN
   const rows = P.ngay.map(x => { const thu = x.file + (x.fileOnl || 0), cp = x.luong + x.chi + cdN, thuc = x.tm + x.ck + x.onl;
@@ -1171,7 +1172,7 @@ function calcPnl() {
   const h = (t, v, c = '') => `<tr class="${c}"><td>${t}</td><td class="${c === 'kq' ? cls(v) : ''}">${fmt(v)}</td></tr>`;
   const cd = tcp - chi - lg, lech = T('lech');
   $('pnKq').innerHTML = `<tr><td colspan="2" class="small">Tính ${PN.daQua}/${PN.soNgay} ngày đã qua (chưa tính hôm nay)</td></tr>` + h('Doanh thu', thu, 'kq') + h('Giá vốn', -gv) + h('Lãi gộp', gop, 'kq') +
-    h('Chi phí cố định (' + it.filter(x => x.tien).map(x => x.muc).join(', ') + ')', -cd) + h('Lương nhân viên', -lg) + h('Tiền chi', -chi) +
+    h('Chi phí cố định (' + (it.some(x => x.muc === CD_TAY && x.tien) ? 'nhập tay' : it.filter(x => x.tien).map(x => x.muc).join(', ')) + ')', -cd) + h('Lương nhân viên', -lg) + h('Tiền chi', -chi) +
     h('Lợi nhuận', ln, 'kq') + `<tr><td>% LN / Doanh thu</td><td>${thu ? (ln / thu * 100).toFixed(1) + '%' : '—'}</td></tr>` +
     `<tr><td>Lệch tiền <span class="small">(Σ Lệch file các lần chốt, âm = thiếu)</span></td><td class="${cls(lech)}">${fmt(lech)}</td></tr>`;
   $('pnNgay').innerHTML = '<thead><tr><th>Ngày</th><th>Doanh thu file</th><th>Giá vốn</th><th>Chi phí<br><span class="small">lương+chi+CĐ</span></th><th>Lợi nhuận</th><th>Lệch tiền</th></tr></thead><tbody>' +
@@ -1231,7 +1232,8 @@ async function taiTq() {
     '<span class="small">Tháng này chưa có số liệu.</span>';
   // Cơ cấu chi phí: CP cố định + lương + tiền chi theo mục (tổng = Tổng chi phí tab P&L)
   const muc = {}, tl = (d.pnl.daQua != null ? d.pnl.daQua : d.pnl.soNgay) / d.pnl.soNgay; d.chi.filter(x => x.ngay < today()).forEach(x => muc[x.muc] = (muc[x.muc] || 0) + x.tien); // chỉ ngày đã qua
-  const cp = d.pnl.items.filter(x => x.tien).map(x => [x.muc, x.tien * tl]).concat([['Lương nhân viên', a.lg]], Object.keys(muc).map(m => ['Tiền chi: ' + m, muc[m]])).sort((p, q) => q[1] - p[1]);
+  const tay = (d.pnl.items.find(x => x.muc === CD_TAY) || {}).tien;
+  const cp = (tay ? [[CD_TAY, a.tcp - a.chi - a.lg]] : d.pnl.items.filter(x => x.tien).map(x => [x.muc, x.tien * tl])).concat([['Lương nhân viên', a.lg]], Object.keys(muc).map(m => ['Tiền chi: ' + m, muc[m]])).sort((p, q) => q[1] - p[1]);
   $('ovCp').innerHTML = '<tr><th>Khoản</th><th>Nghìn đ</th><th>Tỷ trọng</th><th style="width:35%"></th></tr>' +
     cp.map(([m, t]) => `<tr><td>${m}</td><td>${fmt(t)}</td><td>${a.tcp ? (t / a.tcp * 100).toFixed(1) : 0}%</td><td><div class="bar" style="width:${a.tcp ? t / a.tcp * 100 : 0}%"></div></td></tr>`).join('') +
     `<tr class="kq"><td>Tổng chi phí</td><td>${fmt(a.tcp)}</td><td>100%</td><td></td></tr>`;
@@ -1408,13 +1410,13 @@ async function taiPt() {
 /* ---------- TIỀN CHI ---------- */
 async function taiChi() {
   try {
-    const ds = await run('getChi', $('chiThang').value), ngay = $('chiNgay').value;
-    const tongNgay = ds.filter(x => x.ngay === ngay).reduce((s, x) => s + x.tien, 0), tongThang = ds.reduce((s, x) => s + x.tien, 0);
-    $('kpiChi').innerHTML = `<div>Chi ngày ${dm(ngay)}<b>${fmt(tongNgay)}</b></div><div>Chi cả tháng<b>${fmt(tongThang)}</b></div><div>Số khoản<b>${ds.length}</b></div>`;
+    const tu = $('chiTu').value, den = $('chiDen').value; if (!tu || !den || tu > den) return msg('msgChi', 'Chọn khoảng ngày hợp lệ (Từ ngày ≤ Đến ngày).', 'err');
+    const ds = await run('getChi', tu, den), tong = ds.reduce((s, x) => s + x.tien, 0);
+    $('kpiChi').innerHTML = `<div>Chi ${dm(tu)}–${dm(den)}<b>${fmt(tong)}</b></div><div>Số khoản<b>${ds.length}</b></div>`;
     const rows = ds.slice().sort((a, b) => (b.ngay + b.id).localeCompare(a.ngay + a.id));
     $('chiTbl').innerHTML = '<thead><tr><th>Ngày chi</th><th>Tên NV</th><th>Mục chi</th><th>Số tiền</th><th>Diễn giải</th><th></th></tr></thead><tbody>' +
       (rows.map(x => `<tr><td>${dm(x.ngay)}</td><td>${tagNV(x.nv)}</td><td>${x.muc}${x.td ? ' · <b>' + x.td + '</b>' : ''}</td><td><b>${fmt(x.tien)}</b></td><td style="white-space:normal;text-align:left;min-width:120px">${x.dg || ''}</td>` +
-        `<td>${laQL() ? `<button class="b g" style="padding:3px 8px;font-size:12px" onclick="xoaDongChi('${x.id}')">Xóa</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="small">Tháng này chưa có khoản chi.</td></tr>') + '</tbody>';
+        `<td>${laQL() ? `<button class="b g" style="padding:3px 8px;font-size:12px" onclick="xoaDongChi('${x.id}')">Xóa</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="small">Khoảng ngày này chưa có khoản chi.</td></tr>') + '</tbody>';
   } catch (e) { msg('msgChi', e.message, 'err'); }
 }
 async function themChi() {
@@ -1422,7 +1424,7 @@ async function themChi() {
   try {
     await run('addChi', x); toast(); msg('msgChi', `Đã ghi ${fmt(x.tien)}k — ${x.muc}${x.td ? ' · ' + x.td : ''} (${x.nv}, ${dm(x.ngay)}).`, 'ok');
     $('chiMuc').value = $('chiTien').value = $('chiDg').value = $('chiTd').value = ''; $('lbChiTd').hidden = true;
-    if ($('chiThang').value !== x.ngay.slice(0, 7)) $('chiThang').value = x.ngay.slice(0, 7);
+    if (x.ngay < $('chiTu').value) $('chiTu').value = x.ngay; if (x.ngay > $('chiDen').value) $('chiDen').value = x.ngay; // khoản vừa ghi luôn hiện trong bảng
     taiChi(); if (x.ngay <= $('ngay').value) { TONG_CHI += x.ngay === $('ngay').value ? x.tien : 0; CHI_CA.push({ muc: x.td || x.muc, tien: x.tien, ngay: x.ngay }); $('chi').value = (+$('chi').value || 0) + x.tien; calcChot(tienFileCa()); }
   } catch (e) { msg('msgChi', e.message, 'err'); }
 }
@@ -1455,7 +1457,8 @@ async function boot() {
   $('ca').onchange = async () => {
     const n = $('ngay').value; if (!n) return;
     $('tqNgay').value = $('ngayBC').value = $('chiNgay').value = $('lTuan').value = $('ptNgay').value = n;
-    $('thang').value = $('chiThang').value = $('pnThang').value = $('ovThang').value = $('dhThang').value = n.slice(0, 7);
+    $('chiTu').value = n.slice(0, 8) + '01'; $('chiDen').value = n;
+    $('thang').value = $('pnThang').value = $('ovThang').value = $('dhThang').value = n.slice(0, 7);
     await taiCa(); const t = document.querySelector('nav button.on'); if (t && ON_TAB[t.dataset.t]) ON_TAB[t.dataset.t]();
   };
   $('btnRf').onclick = async () => { const b = $('btnRf'); b.disabled = true; try { await $('ngay').onchange(); toast('Đã làm mới'); } finally { b.disabled = false; } }; // ⟳ tải lại số liệu ngày/ca/tab đang mở
@@ -1465,8 +1468,8 @@ async function boot() {
   setInterval(() => { if (document.visibilityState === 'visible' && ($('nhap').classList.contains('on') || $('chot').classList.contains('on'))) baoNhap(''); }, 6e4);
   const nvOpt = '<option value="">-- chọn --</option>' + conLam().map(n => `<option value="${n.ten}">${n.ten}${n.tt ? ' (' + n.tt + ')' : ''}</option>`).join('');
   $('dkNv').innerHTML = nvOpt; $('sapNguoi').innerHTML = nvOpt; $('chiNv').innerHTML = nvOpt;
-  $('chiNgay').value = t; $('chiThang').value = t.slice(0, 7);
-  $('btnChi').onclick = themChi; $('chiMuc').onchange = () => { $('lbChiTd').hidden = $('chiMuc').value !== 'Tiền khác'; if (!$('lbChiTd').hidden) $('chiTd').focus(); }; $('chiThang').onchange = $('chiNgay').onchange = taiChi;
+  $('chiNgay').value = t; $('chiTu').value = t.slice(0, 8) + '01'; $('chiDen').value = t;
+  $('btnChi').onclick = themChi; $('chiMuc').onchange = () => { $('lbChiTd').hidden = $('chiMuc').value !== 'Tiền khác'; if (!$('lbChiTd').hidden) $('chiTd').focus(); }; $('chiTu').onchange = $('chiDen').onchange = taiChi;
   ON_TAB.tienchi = taiChi;
   const ql = conLam().find(n => n.ten.toLowerCase().startsWith('diệp')); if (ql) $('sapNguoi').value = ql.ten; // mặc định Diệp QL
   $('lTuan').value = t; $('lgTu').value = t.slice(0, 8) + '01'; $('lgDen').value = t;
