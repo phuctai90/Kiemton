@@ -188,6 +188,8 @@ nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
 #dkTbl th.caT, #sapTbl th.caT { background:#cfe3fb !important; color:#1d3b6b; } #dkTbl th.caT .small, #sapTbl th.caT .small { color:#3d5a85; }
 #dkTbl td.caT, #sapTbl td.caT { background:#eaf3fe; }
 /* Ô Nhập / Hủy / Online có số → in đậm + viền theo màu cột */
+#grid td:has(> #btnAm) { position:relative; overflow:visible; } #btnAm { position:absolute; left:50%; top:100%; transform:translate(-50%,-6px); z-index:25; width:38px; height:30px; border:0; border-radius:10px; background:#c62828; color:#fff; font-size:20px; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.3); } /* nút đổi dấu cho bàn phím số iPhone (không có dấu −) */
+#pnCp { display:block; overflow-x:auto; } #pnCp td, #pnCp th { padding:3px 4px; } #pnCp input[type=date] { width:120px; font-size:13px; } #pnCp input[type=number] { width:76px; } #pnCp input.khac { width:96px !important; }
 #grid td input.coSo { font-weight:800; font-size:16px; border:2px solid currentColor !important; background:#fff !important; }
 </style>
 </head>
@@ -415,7 +417,7 @@ nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
   <h4>Kết quả tháng (nghìn đ)</h4>
   <div class="tw"><table class="pnl" id="pnKq"></table></div>
   <h4>Lợi nhuận theo ngày (nghìn đ)</h4>
-  <p class="small gt">Doanh thu = số bán ra trên phiếu kiểm tồn (offline + online) × giá bán. Giá vốn = số bán ra × giá vốn (DM_SP cột H ÷ cái/gói). LN = Doanh thu − Giá vốn − Chi phí (lương ngày + tiền chi + CP cố định/ngày). CP cố định/ngày = (Mặt bằng + Điện + Nước + Chi phí khác) ÷ số ngày trong tháng. Lệch tiền = cộng dồn ô 'Lệch file' của từng lần chốt tiền (TM bán + CK − doanh thu file của mốc đó); âm = thiếu tiền. Chỉ theo dõi, không trừ vào LN. Tiền nhà (Mặt bằng) mặc định 10.000k nếu tháng chưa lưu.</p>
+  <p class="small gt">Doanh thu = số bán ra trên phiếu kiểm tồn (offline + online) × giá bán. Giá vốn = số bán ra × giá vốn (DM_SP cột H ÷ cái/gói). LN = Doanh thu − Giá vốn − Chi phí (lương ngày + tiền chi + CP cố định/ngày). CP cố định/ngày = (Mặt bằng + Điện + Nước + Chi phí khác) ÷ số ngày trong tháng. Lệch tiền = cộng dồn ô 'Lệch file' của từng lần chốt tiền (TM bán + CK − doanh thu file của mốc đó); âm = thiếu tiền. Chỉ theo dõi, không trừ vào LN. Chi phí cố định nhập tay mỗi tháng (tháng chưa nhập = 0). Chi phí khác có ô ngày phát sinh — chỉ để ghi lại, vẫn chia đều theo ngày.</p>
   <div class="tw dai"><table id="pnNgay"></table></div>
 </section>
 
@@ -436,6 +438,7 @@ nav button.on { background:#efe5d9; border-radius:0 18px 18px 0; }
   <div class="tw"><table id="ptNgayTbl"></table></div>
 </section>
 <div id="toast"></div>
+<button id="btnAm" type="button" hidden aria-label="Đổi dấu âm/dương">±</button>
 <div id="nhac" hidden><div class="card"><h3 id="nhacTieuDe"></h3><div id="nhacNoiDung"></div><div class="row"><button class="b g" id="nhacMo" hidden>Mở Kiểm tồn ca</button><button class="b" id="nhacOk">Đã biết</button></div></div></div>
 
 <script>
@@ -551,6 +554,12 @@ function drawGrid() {
   $('chuNhom').innerHTML = '<span style="border:0;padding:2px 0">⛔ số âm · ❓ AI đọc chưa chắc · ⏳ chưa đếm tồn cuối · ✏️ tồn đầu điều chỉnh · 📷 AI vừa điền</span>' + co.map(n => `<span style="background:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[0]};border-color:${(MAU_NHOM[n] || MAU_NHOM['Khác'])[1]}">${n}</span>`).join('');
   const g = $('grid'); // dấu thập theo ô đang nhập (focus) hoặc ô chuột đang trỏ
   g.addEventListener('focusin', e => chuThap(e.target.closest('td')));
+  // Nút ± cạnh ô đang nhập: bàn phím số iPhone không có dấu − → gõ số rồi bấm ± để thành số âm
+  const am = $('btnAm'); let oAm = null;
+  g.addEventListener('focusin', e => { if (!e.target.matches('input')) return; oAm = e.target; oAm.parentElement.appendChild(am); am.hidden = false; }); // nút nằm ngay dưới ô đang nhập, cuộn theo ô
+  g.addEventListener('focusout', () => setTimeout(() => { if (!g.contains(document.activeElement)) am.hidden = true; }, 200));
+  const dao = e => { e.preventDefault(); if (!oAm || oAm.value === '') return; oAm.value = String(-(+oAm.value)); oAm.dispatchEvent(new Event('input', { bubbles: true })); oAm.focus(); };
+  am.addEventListener('touchstart', dao, { passive: false }); am.addEventListener('mousedown', dao);
   g.addEventListener('mouseover', e => { const td = e.target.closest('tbody td'); if (td) chuThap(td); });
   g.addEventListener('mouseleave', () => chuThap(g.contains(document.activeElement) ? document.activeElement.closest('td') : null));
   $('gridWrap').onscroll = dinhTieuDe; $('gridHead').dataset.v = '';
@@ -721,8 +730,7 @@ async function luu() {
   // Lưu nhầm mốc: NV được xếp ca kết thúc ở mốc khác mốc đang chọn (vd Ca 1b 5h–12h30 nhưng lưu mốc 09:00 → POS 9h–12h30 bị dồn sang ca sau)
   const ten = nvLuu('kt').toLowerCase(), moc = [...new Set((LICH_NGAY || []).filter(x => x.nv.toLowerCase() === ten).map(x => (INIT.ca.find(c => c.ten === x.ca) || {}).kt).filter(Boolean))];
   if (moc.length && !moc.includes(caSel().kt) && !confirm(`${nvLuu('kt')} được xếp ca kết thúc lúc ${moc.join(', ')}, nhưng đang lưu phiếu mốc ${caSel().kt}.\nLưu nhầm mốc làm số POS và doanh thu bị dồn sai ca. Vẫn lưu mốc ${caSel().kt}?`)) return;
-  const am = $('grid').querySelectorAll('tr.am').length;
-  if (am && !confirm(`${am} SP có số âm (dòng ⛔). Kiểm tra lại — vẫn lưu?`)) return;
+  // số âm được phép nhập (vẫn hiện ⛔ + dòng cảnh báo), không hỏi lại khi Lưu
   const chua = $('grid').querySelectorAll('tr.chua').length;
   if (chua && !confirm(`${chua} SP có tồn đầu/nhập nhưng chưa đếm tồn cuối (dòng ⏳) — sẽ tính tồn cuối = 0. Vẫn lưu?`)) return;
   try {
@@ -1139,20 +1147,22 @@ let PN = null;
 async function taiPnl() {
   try { PN = await run('getPnl', '', $('pnThang').value); } catch (e) { return msg('msgPn', e.message, 'err'); }
   const tien = m => (PN.items.find(x => x.muc === m) || {}).tien || '';
-  $('pnCp').innerHTML = PN_CO_DINH.map(m => `<tr><td>${m}</td><td><input type="number" inputmode="numeric" data-m="${m}" value="${tien(m)}"></td><td>${m === CD_TAY ? '<span class="small">điền thì thay các dòng khác</span>' : ''}</td></tr>`).join('');
-  PN.items.filter(x => !PN_CO_DINH.includes(x.muc)).forEach(x => themCp(x.muc, x.tien));
+  const ngayM = m => (PN.items.find(x => x.muc === m) || {}).ngay || '';
+  $('pnCp').innerHTML = '<tr><th>Khoản</th><th>Số tiền</th><th>Ngày</th><th></th></tr>' + PN_CO_DINH.map(m => `<tr><td>${m}${m === CD_TAY ? '<div class="small">điền thì thay các dòng khác</div>' : ''}</td><td><input type="number" inputmode="numeric" data-m="${m}" value="${tien(m)}"></td><td><input type="date" class="cpN" value="${ngayM(m)}"></td><td></td></tr>`).join('');
+  PN.items.filter(x => !PN_CO_DINH.includes(x.muc)).forEach(x => themCp(x.muc, x.tien, x.ngay));
   $('msgPn').className = 'msg';
-  if (PN.thieuGiaNhap.length) msg('msgPn', `Chưa có Giá nhập/gói (DM_SP cột H) nên giá vốn đang tính 0 cho: ${PN.thieuGiaNhap.join('; ')}`, 'warn');
+  const nhac = (PN.items.length ? '' : `Tháng ${$('pnThang').value} chưa nhập chi phí cố định — nhập tay rồi bấm Lưu. `) + (PN.thieuGiaNhap.length ? `Chưa có Giá nhập/gói (DM_SP cột H) nên giá vốn đang tính 0 cho: ${PN.thieuGiaNhap.join('; ')}` : '');
+  if (nhac) msg('msgPn', nhac, 'warn');
   calcPnl();
 }
-function themCp(muc = '', tien = '') {
+function themCp(muc = '', tien = '', ngay = '') {
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input class="khac" placeholder="Tên chi phí" value="${String(muc).replace(/"/g, '&quot;')}" style="width:130px"></td><td><input type="number" inputmode="numeric" class="khacT" value="${tien}"></td><td><button class="b g" type="button">✕</button></td>`;
+  tr.innerHTML = `<td><input class="khac" placeholder="Tên chi phí" value="${String(muc).replace(/"/g, '&quot;')}" style="width:130px"></td><td><input type="number" inputmode="numeric" class="khacT" value="${tien}"></td><td><input type="date" class="cpN" value="${ngay}"></td><td><button class="b g" type="button">✕</button></td>`;
   tr.querySelector('button').onclick = () => { tr.remove(); calcPnl(); };
   $('pnCp').appendChild(tr);
 }
-const cpItems = () => [...$('pnCp').querySelectorAll('tr')].map(tr => { const a = tr.querySelector('input[data-m]');
-  return a ? { muc: a.dataset.m, tien: +a.value || 0 } : { muc: tr.querySelector('.khac').value.trim(), tien: +tr.querySelector('.khacT').value || 0 }; }).filter(x => x.muc);
+const cpItems = () => [...$('pnCp').querySelectorAll('tr')].filter(tr => tr.querySelector('input')).map(tr => { const a = tr.querySelector('input[data-m]'), ngay = tr.querySelector('.cpN').value; // mỗi dòng có ô ngày (chỉ để ghi lại)
+  return a ? { muc: a.dataset.m, tien: +a.value || 0, ngay } : { muc: tr.querySelector('.khac').value.trim(), tien: +tr.querySelector('.khacT').value || 0, ngay }; }).filter(x => x.muc);
 const dongDon = P => P.donLon && P.donLon.so ? `<tr><td class="small">↳ Trong đó đơn hàng lớn (${P.donLon.so} đơn, ${P.donLon.xong} đã xong) — đã nằm trong doanh thu file, không cộng thêm</td><td class="small">${fmt(P.donLon.tien)}</td></tr>` : '';
 /** Tính P&L tháng — dùng chung cho tab P&L và tab Tổng quan để số 2 tab luôn khớp. it = chi phí cố định [{muc, tien}] */
 function pnlTinh(P, it) {
